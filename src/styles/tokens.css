@@ -1,0 +1,109 @@
+/*
+ * Design tokens for the assignment board.
+ * The wall is the window behind the board, the board is the work surface,
+ * rules are grid tape, ink is marker text and the highlighter marks what is
+ * selected or current. Shift-template colors (magnets) are the only saturated
+ * content color; chrome stays neutral so they read first.
+ */
+:root {
+  color-scheme: dark;
+
+  --wall: #0f1820;
+  --board: #16222c;
+  --board-2: #1c2a35;
+  --well: #0f1820;
+  --rule: #2a3b48;
+  --rule-strong: #5c7385;
+  --ink: #e8eef2;
+  --ink-2: #a2b4c0;
+  --ink-3: #8a9dab;
+  --ink-inverse: #0f1820;
+  --primary-hover: #ffffff;
+  --marker: #93bcf5;
+  --highlight: #f4d35e;
+  --highlight-soft: #302f22;
+  --highlight-ink: #f6dc7a;
+  --on-highlight: #1a1708;
+  --focus: #f4d35e;
+
+  --danger: #ff9a8b;
+  --danger-soft: #3b2226;
+  --warn: #f3b95f;
+  --warn-soft: #382d1c;
+  --ok: #86d9a8;
+  --ok-soft: #1c3329;
+  --info-soft: #1d2d40;
+
+  --magnet-ink: #16202a;
+  --magnet-default: #dfe5ea;
+  --magnet-edge: rgb(0 0 0 / 0.28);
+  --magnet-shadow: 0 1px 0 rgb(0 0 0 / 0.35), 0 2px 5px rgb(0 0 0 / 0.3);
+  --overlay-shadow: 0 24px 64px rgb(0 0 0 / 0.5), 0 2px 8px rgb(0 0 0 / 0.35);
+  --backdrop: rgb(5 10 14 / 0.72);
+
+  --weekend: #192734;
+  --today: #f4d35e;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --wall: #e3e8eb;
+  --board: #fdfdfc;
+  --board-2: #f2f4f5;
+  --well: #ffffff;
+  --rule: #d6dde1;
+  --rule-strong: #6f808b;
+  --ink: #16202a;
+  --ink-2: #475763;
+  --ink-3: #55656f;
+  --ink-inverse: #ffffff;
+  --primary-hover: #2c3d4c;
+  --marker: #1b4e9b;
+  --highlight: #ffe066;
+  --highlight-soft: #fff4c2;
+  --highlight-ink: #6b5200;
+  --on-highlight: #16202a;
+  --focus: #1b4e9b;
+
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --warn: #8a5300;
+  --warn-soft: #fdf1dc;
+  --ok: #1d6b3f;
+  --ok-soft: #e4f4ea;
+  --info-soft: #e8f0fb;
+
+  --magnet-edge: rgb(22 32 42 / 0.22);
+  --magnet-shadow: 0 1px 0 rgb(22 32 42 / 0.18), 0 2px 4px rgb(22 32 42 / 0.12);
+  --overlay-shadow:
+    0 24px 64px rgb(22 32 42 / 0.22), 0 2px 8px rgb(22 32 42 / 0.12);
+  --backdrop: rgb(22 32 42 / 0.45);
+
+  --weekend: #f5f7f8;
+  --today: #c9a400;
+}
+
+@theme {
+  --font-sans:
+    "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui,
+    sans-serif;
+  --font-display:
+    Bahnschrift, "DIN Alternate", "Segoe UI Variable Display", "Segoe UI",
+    sans-serif;
+}
+
+@theme inline {
+  --color-wall: var(--wall);
+  --color-board: var(--board);
+  --color-board-2: var(--board-2);
+  --color-rule: var(--rule);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-marker: var(--marker);
+  --color-highlight: var(--highlight);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+}

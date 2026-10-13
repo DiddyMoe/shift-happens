@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stage-database-restore"
+description = "Enables the stage_database_restore command without any pre-configured scope."
+commands.allow = ["stage_database_restore"]
+
+[[permission]]
+identifier = "deny-stage-database-restore"
+description = "Denies the stage_database_restore command without any pre-configured scope."
+commands.deny = ["stage_database_restore"]

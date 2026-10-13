@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-archive-shift-template"
+description = "Enables the archive_shift_template command without any pre-configured scope."
+commands.allow = ["archive_shift_template"]
+
+[[permission]]
+identifier = "deny-archive-shift-template"
+description = "Denies the archive_shift_template command without any pre-configured scope."
+commands.deny = ["archive_shift_template"]

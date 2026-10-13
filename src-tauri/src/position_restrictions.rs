@@ -1,0 +1,317 @@
+use crate::{
+    employees::{
+        ActiveStatus, IdRequest, MAX_REVISION, RecordFilter, RevisionRequest, check_revision,
+        mutation_result, normalize_optional_notes, read_employee, require_not_archived,
+        verify_metadata,
+    },
+    error::{AppError, AppResult, CommandResult, ErrorCode},
+    metadata::{MetadataClock, clock_timestamp},
+    positions::read_position,
+    text::normalize_required_text,
+};
+use serde::{Deserialize, Serialize};
+use sqlx::{FromRow, Sqlite, SqlitePool, Transaction};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, sqlx::Type)]
+#[serde(rename_all = "snake_case")]
+#[sqlx(rename_all = "snake_case")]
+pub enum PositionRestrictionType {
+    CannotWork,
+}
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, FromRow)]
+#[serde(deny_unknown_fields)]
+pub struct PositionRestrictionData {
+    pub shift_position_id: String,
+    pub restriction_type: PositionRestrictionType,
+    pub active_status: ActiveStatus,
+    pub notes: Option<String>,
+}
+impl PositionRestrictionData {
+    fn normalized(mut self) -> AppResult<Self> {
+        // IDs identify a stored row; do not silently trim into a different reference.
+        if normalize_required_text(&self.shift_position_id)? != self.shift_position_id {
+            return Err(AppError::new(
+                ErrorCode::InvalidRestriction,
+                "Choose a saved position.",
+            ));
+        }
+        self.notes = normalize_optional_notes(self.notes)?;
+        Ok(self)
+    }
+}
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct PositionRestriction {
+    pub id: String,
+    pub employee_id: String,
+    #[serde(flatten)]
+    #[sqlx(flatten)]
+    pub data: PositionRestrictionData,
+    pub created_at: String,
+    pub updated_at: String,
+    pub archived_at: Option<String>,
+    pub revision: i64,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CreatePositionRestrictionRequest {
+    pub employee_id: String,
+    pub restriction: PositionRestrictionData,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UpdatePositionRestrictionRequest {
+    pub id: String,
+    pub expected_revision: i64,
+    pub restriction: PositionRestrictionData,
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ListPositionRestrictionsRequest {
+    pub employee_id: String,
+    #[serde(default)]
+    pub filter: RecordFilter,
+}
+
+pub(crate) fn verify_restriction(row: &PositionRestriction) -> AppResult<()> {
+    if row.data.clone().normalized().map_err(|_| {
+        AppError::new(
+            ErrorCode::ConfigurationInvalid,
+            "A stored position restriction is invalid.",
+        )
+    })? != row.data
+        || (row.archived_at.is_some() && row.data.active_status != ActiveStatus::Inactive)
+    {
+        return Err(AppError::new(
+            ErrorCode::ConfigurationInvalid,
+            "A stored position restriction requires investigation; it has not been changed.",
+        ));
+    }
+    verify_metadata(
+        &row.created_at,
+        &row.updated_at,
+        &row.archived_at,
+        row.revision,
+    )
+}
+async fn read_restriction(
+    tx: &mut Transaction<'_, Sqlite>,
+    id: &str,
+) -> AppResult<PositionRestriction> {
+    normalize_required_text(id)?;
+    let row = sqlx::query_as::<_, PositionRestriction>(
+        "SELECT * FROM employee_position_restrictions WHERE id = ?",
+    )
+    .bind(id)
+    .fetch_optional(&mut **tx)
+    .await?
+    .ok_or_else(|| {
+        AppError::new(
+            ErrorCode::NotFound,
+            "The position restriction could not be found.",
+        )
+    })?;
+    verify_restriction(&row)?;
+    Ok(row)
+}
+pub async fn get_restriction(
+    pool: &SqlitePool,
+    request: IdRequest,
+) -> AppResult<PositionRestriction> {
+    let mut tx = pool.begin().await?;
+    let row = read_restriction(&mut tx, &request.id).await?;
+    tx.rollback().await?;
+    Ok(row)
+}
+pub async fn list_restrictions(
+    pool: &SqlitePool,
+    request: ListPositionRestrictionsRequest,
+) -> AppResult<Vec<PositionRestriction>> {
+    let (archive, active) = match request.filter {
+        RecordFilter::Current => (Some(false), None),
+        RecordFilter::Active => (Some(false), Some(ActiveStatus::Active)),
+        RecordFilter::Inactive => (Some(false), Some(ActiveStatus::Inactive)),
+        RecordFilter::Archived => (Some(true), None),
+        RecordFilter::All => (None, None),
+    };
+    let mut tx = pool.begin().await?;
+    read_employee(&mut tx, &request.employee_id).await?;
+    let rows = sqlx::query_as::<_, PositionRestriction>("SELECT * FROM employee_position_restrictions WHERE employee_id=?1 AND (?2 IS NULL OR (archived_at IS NOT NULL)=?2) AND (?3 IS NULL OR active_status=?3) ORDER BY shift_position_id, id")
+        .bind(request.employee_id).bind(archive).bind(active).fetch_all(&mut *tx).await?;
+    tx.rollback().await?;
+    for row in &rows {
+        verify_restriction(row)?;
+    }
+    Ok(rows)
+}
+
+async fn require_active_sources(
+    tx: &mut Transaction<'_, Sqlite>,
+    employee_id: &str,
+    position_id: &str,
+) -> AppResult<()> {
+    let employee = read_employee(tx, employee_id).await?;
+    let position = read_position(tx, position_id).await?;
+    if employee.archived_at.is_some() || employee.data.active_status != ActiveStatus::Active {
+        let mut error = AppError::new(
+            ErrorCode::InvalidRestriction,
+            "Choose an active, non-archived employee before adding or reactivating a position restriction.",
+        );
+        error.context.id = Some(employee.id);
+        return Err(error);
+    }
+    if position.archived_at.is_some() || position.data.active_status != ActiveStatus::Active {
+        let mut error = AppError::new(
+            ErrorCode::InvalidRestriction,
+            "Choose an active, non-archived position before adding or reactivating a position restriction.",
+        );
+        error.context.id = Some(position.id);
+        return Err(error);
+    }
+    Ok(())
+}
+async fn write_restriction(
+    tx: &mut Transaction<'_, Sqlite>,
+    row: &PositionRestriction,
+    create: bool,
+) -> AppResult<()> {
+    if row.data.active_status == ActiveStatus::Active && row.archived_at.is_none() {
+        let duplicate: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM employee_position_restrictions WHERE employee_id=? AND shift_position_id=? AND id<>? AND active_status='active' AND archived_at IS NULL)")
+            .bind(&row.employee_id).bind(&row.data.shift_position_id).bind(&row.id).fetch_one(&mut **tx).await?;
+        if duplicate {
+            return Err(AppError::new(
+                ErrorCode::DuplicateRestriction,
+                "An active restriction already exists for this employee and position. Edit it or make it inactive first.",
+            ));
+        }
+    }
+    let sql = if create {
+        "INSERT INTO employee_position_restrictions (id,employee_id,shift_position_id,restriction_type,active_status,notes,created_at,updated_at,archived_at,revision) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)"
+    } else {
+        "UPDATE employee_position_restrictions SET shift_position_id=?3,restriction_type=?4,active_status=?5,notes=?6,updated_at=?8,archived_at=?9,revision=?10 WHERE id=?1 AND revision=?10-1"
+    };
+    let result = sqlx::query(sql)
+        .bind(&row.id)
+        .bind(&row.employee_id)
+        .bind(&row.data.shift_position_id)
+        .bind(row.data.restriction_type)
+        .bind(row.data.active_status)
+        .bind(&row.data.notes)
+        .bind(&row.created_at)
+        .bind(&row.updated_at)
+        .bind(&row.archived_at)
+        .bind(row.revision)
+        .execute(&mut **tx)
+        .await?;
+    if result.rows_affected() != 1 {
+        return Err(AppError::new(
+            ErrorCode::StaleRevision,
+            "Reload the position restriction before saving.",
+        ));
+    }
+    Ok(())
+}
+fn advance_revision(row: &mut PositionRestriction, clock: &dyn MetadataClock) -> AppResult<()> {
+    row.revision = row
+        .revision
+        .checked_add(1)
+        .filter(|v| *v <= MAX_REVISION)
+        .ok_or_else(|| {
+            AppError::new(
+                ErrorCode::InvalidRevision,
+                "The revision limit has been reached.",
+            )
+        })?;
+    row.updated_at = clock_timestamp(clock)?;
+    Ok(())
+}
+pub async fn create_restriction(
+    pool: &SqlitePool,
+    clock: &dyn MetadataClock,
+    request: CreatePositionRestrictionRequest,
+) -> AppResult<PositionRestriction> {
+    let data = request.restriction.normalized()?;
+    let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
+    require_active_sources(&mut tx, &request.employee_id, &data.shift_position_id).await?;
+    let timestamp = clock_timestamp(clock)?;
+    let row = PositionRestriction {
+        id: uuid::Uuid::new_v4().to_string(),
+        employee_id: request.employee_id,
+        data,
+        created_at: timestamp.clone(),
+        updated_at: timestamp,
+        archived_at: None,
+        revision: 1,
+    };
+    write_restriction(&mut tx, &row, true).await?;
+    tx.commit().await?;
+    Ok(row)
+}
+pub async fn update_restriction(
+    pool: &SqlitePool,
+    clock: &dyn MetadataClock,
+    request: UpdatePositionRestrictionRequest,
+) -> CommandResult<PositionRestriction> {
+    mutation_result(
+        async {
+            let data = request.restriction.normalized()?;
+            let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
+            let mut row = read_restriction(&mut tx, &request.id).await?;
+            check_revision(&row.id, row.revision, request.expected_revision)?;
+            require_not_archived(&row.archived_at)?;
+            if data.active_status == ActiveStatus::Active
+                || row.data.shift_position_id != data.shift_position_id
+            {
+                require_active_sources(&mut tx, &row.employee_id, &data.shift_position_id).await?;
+            }
+            if row.data == data {
+                tx.rollback().await?;
+                return Ok((row, false));
+            }
+            row.data = data;
+            advance_revision(&mut row, clock)?;
+            write_restriction(&mut tx, &row, false).await?;
+            tx.commit().await?;
+            Ok((row, true))
+        }
+        .await,
+    )
+}
+pub async fn archive_restriction(
+    pool: &SqlitePool,
+    clock: &dyn MetadataClock,
+    request: RevisionRequest,
+) -> CommandResult<PositionRestriction> {
+    mutation_result(
+        async {
+            let mut tx = pool.begin_with("BEGIN IMMEDIATE").await?;
+            let mut row = read_restriction(&mut tx, &request.id).await?;
+            check_revision(&row.id, row.revision, request.expected_revision)?;
+            if row.archived_at.is_some() {
+                tx.rollback().await?;
+                return Ok((row, false));
+            }
+            advance_revision(&mut row, clock)?;
+            row.archived_at = Some(row.updated_at.clone());
+            row.data.active_status = ActiveStatus::Inactive;
+            write_restriction(&mut tx, &row, false).await?;
+            tx.commit().await?;
+            Ok((row, true))
+        }
+        .await,
+    )
+}
+
+pub async fn validate_restrictions(tx: &mut Transaction<'_, Sqlite>) -> AppResult<()> {
+    let rows = sqlx::query_as::<_, PositionRestriction>(
+        "SELECT * FROM employee_position_restrictions ORDER BY employee_id, shift_position_id, id",
+    )
+    .fetch_all(&mut **tx)
+    .await?;
+    for row in &rows {
+        verify_restriction(row)?;
+        // Source existence/shape remains mandatory; source activity is not a historical invariant.
+        read_employee(tx, &row.employee_id).await?;
+        read_position(tx, &row.data.shift_position_id).await?;
+    }
+    Ok(())
+}

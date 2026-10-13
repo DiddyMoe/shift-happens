@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reset-employment-defaults"
+description = "Enables the reset_employment_defaults command without any pre-configured scope."
+commands.allow = ["reset_employment_defaults"]
+
+[[permission]]
+identifier = "deny-reset-employment-defaults"
+description = "Denies the reset_employment_defaults command without any pre-configured scope."
+commands.deny = ["reset_employment_defaults"]

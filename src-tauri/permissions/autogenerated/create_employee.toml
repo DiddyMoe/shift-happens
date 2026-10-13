@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-employee"
+description = "Enables the create_employee command without any pre-configured scope."
+commands.allow = ["create_employee"]
+
+[[permission]]
+identifier = "deny-create-employee"
+description = "Denies the create_employee command without any pre-configured scope."
+commands.deny = ["create_employee"]

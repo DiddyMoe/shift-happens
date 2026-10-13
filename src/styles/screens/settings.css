@@ -1,0 +1,98 @@
+@layer components {
+  /* Groups are separated by rules, not cards. */
+  .set-group + .set-group {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+  .set-group > h2 {
+    margin-bottom: 14px;
+  }
+  .set-note {
+    margin-top: 10px;
+  }
+
+  /* One setting: name, explanation, then its control with its own
+     Save / Cancel changes beside it. */
+  .set-item {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: 0;
+  }
+  .set-item + .set-item {
+    margin-top: 22px;
+  }
+  .set-item-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .set-item-head > label,
+  .set-label {
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .set-item > .field-help {
+    max-width: 68ch;
+    margin-top: -2px;
+  }
+  .set-item-control {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    margin-top: 4px;
+  }
+  .set-item-control > input,
+  .set-item-control > select {
+    width: 220px;
+    max-width: 100%;
+  }
+  .set-item-control .cluster {
+    gap: 4px;
+  }
+  .set-value {
+    font-size: 14px;
+  }
+  .set-item > .notice {
+    margin: 4px 0 0;
+  }
+
+  /* Read-only settings: the description sits under each value. */
+  .set-readonly dd .field-help {
+    margin-top: 2px;
+  }
+
+  .set-technical {
+    margin-top: 12px;
+  }
+  .set-intended-use {
+    max-width: 68ch;
+    font-size: 14px;
+  }
+  .about-notices {
+    margin-top: 10px;
+  }
+  .about-notices-text {
+    max-height: 420px;
+    margin: 0;
+    padding: 12px 14px;
+    overflow: auto;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: var(--well);
+    color: var(--ink-2);
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  .set-limitations {
+    color: var(--ink-2);
+    font-size: 13.5px;
+  }
+}

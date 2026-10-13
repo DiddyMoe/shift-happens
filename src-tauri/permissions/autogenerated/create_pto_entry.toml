@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-pto-entry"
+description = "Enables the create_pto_entry command without any pre-configured scope."
+commands.allow = ["create_pto_entry"]
+
+[[permission]]
+identifier = "deny-create-pto-entry"
+description = "Denies the create_pto_entry command without any pre-configured scope."
+commands.deny = ["create_pto_entry"]

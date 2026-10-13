@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-archive-holiday"
+description = "Enables the archive_holiday command without any pre-configured scope."
+commands.allow = ["archive_holiday"]
+
+[[permission]]
+identifier = "deny-archive-holiday"
+description = "Denies the archive_holiday command without any pre-configured scope."
+commands.deny = ["archive_holiday"]

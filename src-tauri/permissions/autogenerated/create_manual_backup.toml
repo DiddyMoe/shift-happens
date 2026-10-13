@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-manual-backup"
+description = "Enables the create_manual_backup command without any pre-configured scope."
+commands.allow = ["create_manual_backup"]
+
+[[permission]]
+identifier = "deny-create-manual-backup"
+description = "Denies the create_manual_backup command without any pre-configured scope."
+commands.deny = ["create_manual_backup"]

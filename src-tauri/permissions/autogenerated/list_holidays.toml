@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-holidays"
+description = "Enables the list_holidays command without any pre-configured scope."
+commands.allow = ["list_holidays"]
+
+[[permission]]
+identifier = "deny-list-holidays"
+description = "Denies the list_holidays command without any pre-configured scope."
+commands.deny = ["list_holidays"]

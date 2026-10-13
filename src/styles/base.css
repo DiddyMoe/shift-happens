@@ -1,0 +1,231 @@
+@layer base {
+  :root {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink);
+    background: var(--wall);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    scrollbar-color: var(--rule-strong) transparent;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    background: var(--wall);
+    color: var(--ink);
+  }
+  /* The shell owns scrolling (sidebar and board scroll independently), so the
+     document itself never scrolls or shifts the whole window. */
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  ::selection {
+    background: var(--highlight);
+    color: var(--on-highlight);
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: -0.005em;
+    overflow-wrap: anywhere;
+  }
+  h2 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+  h4 {
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  a {
+    color: var(--marker);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 3px;
+  }
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+
+  strong,
+  b {
+    font-weight: 650;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  /* The main region receives programmatic focus after navigation; it is a
+     landmark target, not a control, so it does not draw a ring. */
+  main:focus,
+  main:focus-visible {
+    outline: none;
+  }
+
+  button {
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  label {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]) {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+  select,
+  textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 34px;
+    padding: 6px 10px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 6px;
+    background: var(--well);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+  }
+  select {
+    padding-right: 28px;
+  }
+  textarea {
+    resize: vertical;
+    min-height: 72px;
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--ink-3);
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 0;
+    border-color: var(--focus);
+  }
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--ink);
+  }
+  input[type="color"] {
+    width: 44px;
+    height: 34px;
+    padding: 2px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 6px;
+    background: var(--well);
+  }
+
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  /* Floating the legend keeps it inside the fieldset's content box, so it
+     sits below a section rule instead of on top of it. */
+  legend {
+    float: left;
+    width: 100%;
+    padding: 0;
+    margin-bottom: 14px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  legend + * {
+    clear: left;
+  }
+
+  summary {
+    cursor: pointer;
+    color: var(--ink-2);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  summary:hover {
+    color: var(--ink);
+  }
+  details[open] > summary {
+    margin-bottom: 8px;
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  time,
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  dialog {
+    color: var(--ink);
+  }
+
+  * {
+    scrollbar-width: thin;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

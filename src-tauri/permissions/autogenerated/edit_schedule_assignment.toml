@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-edit-schedule-assignment"
+description = "Enables the edit_schedule_assignment command without any pre-configured scope."
+commands.allow = ["edit_schedule_assignment"]
+
+[[permission]]
+identifier = "deny-edit-schedule-assignment"
+description = "Denies the edit_schedule_assignment command without any pre-configured scope."
+commands.deny = ["edit_schedule_assignment"]

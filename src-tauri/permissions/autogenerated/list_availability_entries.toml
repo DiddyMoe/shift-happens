@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-availability-entries"
+description = "Enables the list_availability_entries command without any pre-configured scope."
+commands.allow = ["list_availability_entries"]
+
+[[permission]]
+identifier = "deny-list-availability-entries"
+description = "Denies the list_availability_entries command without any pre-configured scope."
+commands.deny = ["list_availability_entries"]

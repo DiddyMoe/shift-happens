@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-preview-holiday-rotation"
+description = "Enables the preview_holiday_rotation command without any pre-configured scope."
+commands.allow = ["preview_holiday_rotation"]
+
+[[permission]]
+identifier = "deny-preview-holiday-rotation"
+description = "Denies the preview_holiday_rotation command without any pre-configured scope."
+commands.deny = ["preview_holiday_rotation"]

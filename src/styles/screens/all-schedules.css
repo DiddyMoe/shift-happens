@@ -1,0 +1,12 @@
+@layer components {
+  /* Every saved plan in one table; each name opens it in Schedule. */
+  .all-table td.all-dates {
+    white-space: nowrap;
+  }
+  .all-tags {
+    gap: 4px 6px;
+  }
+  .all-empty {
+    margin-top: 12px;
+  }
+}

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-coverage-template"
+description = "Enables the update_coverage_template command without any pre-configured scope."
+commands.allow = ["update_coverage_template"]
+
+[[permission]]
+identifier = "deny-update-coverage-template"
+description = "Denies the update_coverage_template command without any pre-configured scope."
+commands.deny = ["update_coverage_template"]

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-resolve-holidays"
+description = "Enables the resolve_holidays command without any pre-configured scope."
+commands.allow = ["resolve_holidays"]
+
+[[permission]]
+identifier = "deny-resolve-holidays"
+description = "Denies the resolve_holidays command without any pre-configured scope."
+commands.deny = ["resolve_holidays"]

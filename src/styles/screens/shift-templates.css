@@ -1,0 +1,121 @@
+@layer components {
+  /* ---------- Template list (split-list column) ---------- */
+  /* Loading, empty and error states sit inside the list column. */
+  .tpl-list-state {
+    padding: 12px 14px;
+  }
+  .tpl-list-state > * {
+    margin: 0;
+  }
+
+  /* A template's color shown as a small landscape chip, like a magnet seen
+     from afar, so it never reads as a checkbox. */
+  .tpl-chip {
+    width: 20px;
+    height: 12px;
+  }
+
+  .tpl-item-name {
+    min-width: 0;
+  }
+  /* Hang the lines under the name so they align past the color chip
+     (chip 20px + record-title gap 8px). */
+  .tpl-list .record-item > :not(.record-title) {
+    padding-left: 28px;
+  }
+  .tpl-item-meta .display {
+    color: var(--ink);
+  }
+  .tpl-item-flags {
+    gap: 4px;
+    margin-top: 3px;
+  }
+  .tpl-item-flags .tag {
+    font-size: 11.5px;
+    line-height: 17px;
+  }
+
+  /* ---------- Template form ---------- */
+  /* Times on the left, the live paid-time calculation beside them. */
+  .tpl-times {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+    gap: 16px 28px;
+    align-items: start;
+  }
+  .tpl-preview {
+    display: grid;
+    gap: 14px;
+  }
+  .tpl-preview > * {
+    margin: 0;
+  }
+  .tpl-calc {
+    display: grid;
+    gap: 4px;
+  }
+  .tpl-calc-paid {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .tpl-calc-detail {
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+
+  .tpl-flags {
+    margin-top: 16px;
+  }
+
+  /* Color field with a magnet preview beside it; wraps when narrow. */
+  .tpl-color {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 16px 28px;
+  }
+  .tpl-color-field {
+    flex: 1 1 260px;
+    max-width: 420px;
+  }
+  .tpl-color-row {
+    display: flex;
+    gap: 8px;
+  }
+  .tpl-color-row input[type="color"] {
+    flex: 0 0 44px;
+    cursor: pointer;
+  }
+  .tpl-color-preview {
+    display: grid;
+    gap: 6px;
+    flex: 0 0 170px;
+  }
+
+  /* ---------- Employee restrictions ----------
+     The panel (components/RestrictionsPanel) is shared with Positions and
+     coverage; its styles live here with the first screen that used it. */
+  .restrictions {
+    margin-top: 20px;
+  }
+  .restrictions-title {
+    margin-bottom: 12px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .restrictions-hint {
+    margin: -6px 0 12px;
+  }
+  .restrictions-table {
+    min-width: 720px;
+  }
+  .restriction-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .restriction-form {
+    margin-top: 16px;
+  }
+}

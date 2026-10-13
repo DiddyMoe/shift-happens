@@ -1,0 +1,356 @@
+@layer components {
+  /* ---------- Schedule workspace: one plan, its actions and its board ---------- */
+  .page-workspace > .notice {
+    margin: 0 0 16px;
+  }
+  .ws-heading {
+    display: grid;
+    flex: 1 1 360px;
+    gap: 6px;
+    min-width: 0;
+  }
+  .ws-kind {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  /* The plan name takes focus after switching plans; it is a landing point,
+     not a control, so it draws no ring. */
+  .ws-title:focus,
+  .ws-title:focus-visible {
+    outline: none;
+  }
+  .ws-facts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 20px;
+    color: var(--ink-2);
+  }
+  .ws-facts > .display {
+    color: var(--ink);
+    font-size: 15px;
+  }
+  .ws-open .display {
+    color: var(--ink);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .ws-open.has-open .display {
+    padding: 0 5px;
+    border: 1.5px dashed var(--rule-strong);
+    border-radius: 4px;
+  }
+  .ws-archived-note {
+    margin-top: 16px;
+  }
+
+  /* One action row: editing and checking on the left, output and lifecycle
+     on the right. At narrow widths the right group wraps under the left. */
+  .page-workspace .finalization-panel {
+    margin: 0 0 16px;
+  }
+  .page-workspace > .ws-toolbar {
+    margin-bottom: 16px;
+  }
+  .ws-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 16px;
+  }
+  .ws-toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .ws-toolbar-end {
+    margin-left: auto;
+  }
+  .ws-count {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--board-2);
+    color: var(--ink-2);
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    line-height: 18px;
+    text-align: center;
+  }
+  .ws-issues-status {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0 8px;
+    padding-left: 8px;
+    border-left: 1px solid var(--rule-strong);
+    color: var(--ink-2);
+    font-weight: 500;
+  }
+  .ws-issue {
+    font-weight: 600;
+  }
+  .ws-issue.is-error {
+    color: var(--danger);
+  }
+  .ws-issue.is-warn {
+    color: var(--warn);
+  }
+  .ws-issue.is-ok {
+    color: var(--ok);
+  }
+  .page-workspace .board {
+    margin-top: 16px;
+  }
+
+  /* ---------- Popover menus (More, Switch plan) ---------- */
+  .popover {
+    position: fixed;
+    inset: auto;
+    min-width: 220px;
+    max-width: calc(100vw - 16px);
+    max-height: min(70dvh, 520px);
+    margin: 0;
+    padding: 6px;
+    overflow-y: auto;
+    border: 1px solid var(--rule-strong);
+    border-radius: 10px;
+    background: var(--board);
+    color: var(--ink);
+    box-shadow: var(--overlay-shadow);
+  }
+  .menu:popover-open {
+    display: grid;
+    gap: 1px;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink);
+    font-size: 13.5px;
+    text-align: left;
+    text-decoration: none;
+  }
+  .menu-item:hover:not(:disabled) {
+    background: var(--board-2);
+    text-decoration: none;
+  }
+  .menu-item:disabled {
+    opacity: 0.45;
+  }
+  .menu-item.is-danger {
+    color: var(--danger);
+  }
+  .menu-sep {
+    height: 1px;
+    margin: 4px 2px;
+    border: 0;
+    background: var(--rule);
+  }
+  .menu-note {
+    padding: 6px 10px;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  .plan-picker {
+    width: min(400px, calc(100vw - 16px));
+  }
+  .plan-picker-list {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .plan-picker-item {
+    display: grid;
+    gap: 3px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: var(--ink);
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .plan-picker-item:hover {
+    background: var(--board-2);
+    text-decoration: none;
+  }
+  .plan-picker-item[aria-current="true"] {
+    background: var(--highlight-soft);
+    box-shadow: inset 3px 0 0 var(--highlight);
+  }
+  .plan-picker-name {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .plan-picker-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+  }
+
+  /* ---------- Assignment sheet ---------- */
+  .sheet-more {
+    margin-top: 12px;
+  }
+  .sheet-actions {
+    margin-top: 12px;
+  }
+  .sheet .notice {
+    margin-top: 16px;
+  }
+
+  /* ---------- Issues: a side panel like the assignment sheet ---------- */
+  .issues-sheet {
+    width: min(560px, calc(100vw - 24px));
+  }
+  .issues-sheet h2:focus {
+    outline: none;
+  }
+  .iss-checked {
+    margin-top: 2px;
+    color: var(--ink-3);
+    font-size: 12.5px;
+  }
+  .iss-idle {
+    display: grid;
+    gap: 10px;
+    justify-items: start;
+  }
+  .iss-summary {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .iss-summary > .notice {
+    margin: 0;
+  }
+  .iss-summary .counts dd {
+    font-size: 22px;
+  }
+  .iss-has-errors dd {
+    color: var(--danger);
+  }
+  .iss-has-warnings dd {
+    color: var(--warn);
+  }
+  .iss-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .iss-section {
+    margin-top: 20px;
+  }
+  .iss-section > h3 {
+    margin-bottom: 8px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .iss-day + .iss-day {
+    margin-top: 14px;
+  }
+  .iss-day > h4 {
+    margin-bottom: 6px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+  }
+  .iss-day > h4 .display {
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .iss-when {
+    color: var(--ink-2);
+    font-size: 12.5px;
+  }
+  .iss-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-top: 4px;
+    font-size: 13px;
+  }
+  .iss-reference {
+    margin-top: 24px;
+  }
+  .iss-code-message {
+    margin-top: 4px;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  .issues-sheet .how-it-works {
+    margin-top: 24px;
+  }
+
+  /* ---------- Plan details dialog ---------- */
+  .plan-details-facts {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* ---------- Setup status ---------- */
+  .setup-banner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 8px 10px 8px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    background: var(--board-2);
+  }
+  .setup-banner details {
+    flex: 1;
+    min-width: 0;
+    padding-top: 4px;
+  }
+  .setup-banner summary {
+    color: var(--ink);
+  }
+  .setup-checklist {
+    max-width: 720px;
+  }
+  .setup-checklist > h2 {
+    margin-bottom: 8px;
+  }
+  .setup-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .setup-list > li {
+    display: grid;
+    gap: 2px;
+    padding: 10px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .setup-item-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .setup-item-head a {
+    font-weight: 600;
+  }
+  .setup-detail {
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+}

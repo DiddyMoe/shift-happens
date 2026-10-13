@@ -1,0 +1,318 @@
+/* ---------- On-screen schedule print preview: always paper ---------- */
+.schedule-print-preview {
+  margin-top: 24px;
+  padding: 28px;
+  border: 1px solid #cfd6db;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.18);
+  color: #16202a;
+  color-scheme: light;
+}
+.schedule-print-preview h2,
+.schedule-print-preview h3 {
+  color: #16202a;
+}
+.schedule-print-preview h3 {
+  margin: 18px 0 8px;
+}
+.schedule-print-header,
+.schedule-print-details {
+  overflow-wrap: anywhere;
+}
+.schedule-print-header p,
+.schedule-print-details p {
+  color: #16202a;
+}
+.print-table-scroll {
+  overflow-x: auto;
+}
+.schedule-print-table {
+  width: 100%;
+  min-width: 900px;
+  table-layout: fixed;
+  border-collapse: collapse;
+  color: #16202a;
+  font-size: 11px;
+}
+.schedule-print-table th,
+.schedule-print-table td {
+  padding: 6px 5px;
+  border: 1px solid #cfd6db;
+  text-align: left;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.schedule-print-table th {
+  background: #eef1f3;
+  font-weight: 650;
+}
+.schedule-print-table th:nth-child(6),
+.schedule-print-table th:nth-child(7),
+.schedule-print-table th:nth-child(8) {
+  width: 14%;
+}
+.schedule-print-details {
+  margin-top: 28px;
+}
+.print-assignment-detail dl > div {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  padding: 4px 0;
+  border-bottom: 1px solid #e3e8eb;
+}
+.print-assignment-detail dt {
+  font-weight: 600;
+}
+.print-assignment-detail dd,
+.literal-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Finalization celebration: magnets dropping onto the board ---------- */
+.celebration {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  pointer-events: none;
+}
+.celebration span {
+  display: block;
+  width: 34px;
+  height: 20px;
+  border: 1px solid var(--magnet-edge);
+  border-radius: 4px;
+  box-shadow: var(--magnet-shadow);
+  font-size: 0;
+  animation: magnet-drop 900ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+.celebration span:nth-child(1) {
+  background: #dbeafe;
+}
+.celebration span:nth-child(2) {
+  background: #ccfbf1;
+  animation-delay: 90ms;
+}
+.celebration span:nth-child(3) {
+  background: #fde68a;
+  animation-delay: 180ms;
+}
+.celebration span:nth-child(4) {
+  background: #ede9fe;
+  animation-delay: 270ms;
+}
+.celebration span:nth-child(5) {
+  background: #fecdd3;
+  animation-delay: 360ms;
+}
+@keyframes magnet-drop {
+  0% {
+    transform: translateY(-36px) rotate(-8deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .celebration span {
+    animation: none;
+  }
+}
+
+/* ---------- Print ---------- */
+@page help-cheat-sheet {
+  size: letter portrait;
+  margin: 0.45in;
+}
+@page schedule-export {
+  size: letter landscape;
+  margin: 0.5in;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+    background: white;
+    color: black;
+  }
+  html,
+  body {
+    height: auto;
+    overflow: visible;
+  }
+  body {
+    min-width: 0;
+    background: white;
+  }
+
+  /* Help quick reference: only the summary block prints, on one page. */
+  .app-shell,
+  .help-header,
+  .help-body {
+    display: none;
+  }
+  dialog.help-dialog {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: white;
+    box-shadow: none;
+    color: black;
+    page: help-cheat-sheet;
+  }
+  dialog.help-dialog:not([open]) {
+    display: none;
+  }
+  .help-dialog::backdrop {
+    display: none;
+  }
+  .help-quick-reference {
+    display: block;
+    columns: 2;
+    column-gap: 20pt;
+    color: black;
+  }
+  .help-quick-reference > h2 {
+    column-span: all;
+    margin-bottom: 4pt;
+    font-size: 16pt;
+    color: black;
+  }
+  .help-quick-reference h3 {
+    margin-top: 8pt;
+    margin-bottom: 2pt;
+    font-size: 10pt;
+    color: black;
+    break-after: avoid;
+  }
+  .help-quick-reference p,
+  .help-quick-reference li,
+  .help-quick-reference th,
+  .help-quick-reference td {
+    font-size: 8pt;
+    line-height: 1.25;
+    color: black;
+  }
+  .help-quick-reference .help-keys th,
+  .help-quick-reference .help-keys td {
+    padding: 1pt 6pt 1pt 0;
+    border-color: #ccc;
+  }
+  .help-quick-reference kbd {
+    padding: 0 2pt;
+    border-color: #999;
+    background: white;
+    font-size: 7.5pt;
+  }
+  .help-workflow li {
+    padding: 2pt 0;
+  }
+  .help-workflow li::before {
+    font-size: 9pt;
+    color: black;
+  }
+  .help-workflow li,
+  .help-keys tr {
+    break-inside: avoid;
+  }
+
+  /* Schedule print preview: only the sheet inside the open preview dialog.
+     The modal sits in the top layer, so the landscape page is named on the
+     body; a page name on the dialog itself is not applied. */
+  body:has(dialog.print-dialog[open]) {
+    page: schedule-export;
+  }
+  dialog.print-dialog[open] {
+    position: static;
+    display: block;
+    width: auto;
+    height: auto;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    background: white;
+    box-shadow: none;
+    color: black;
+  }
+  .print-dialog::backdrop,
+  .print-dialog-bar,
+  .export-controls {
+    display: none;
+  }
+  .print-dialog-body {
+    padding: 0;
+    overflow: visible;
+  }
+  .schedule-print-preview {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    font-size: 10pt;
+    page: schedule-export;
+  }
+  .schedule-print-preview h2 {
+    font-size: 14pt;
+  }
+  .schedule-print-preview h3 {
+    font-size: 11pt;
+    break-after: avoid;
+  }
+  .schedule-print-table {
+    min-width: 0;
+    font-size: 9pt;
+  }
+  .print-table-scroll {
+    overflow: visible;
+  }
+  .schedule-print-table thead {
+    display: table-header-group;
+  }
+  .schedule-print-table tr {
+    break-inside: avoid;
+  }
+  .schedule-print-details {
+    break-before: page;
+  }
+  .print-assignment-detail dl > div {
+    display: inline;
+    padding: 0;
+    border: 0;
+  }
+  .print-assignment-detail dt,
+  .print-assignment-detail dd {
+    display: inline;
+  }
+  .print-assignment-detail dt::after {
+    content: ": ";
+  }
+  .print-assignment-detail dd::after {
+    content: " | ";
+  }
+  .print-assignment-detail dl > div:nth-child(20) {
+    display: block;
+    margin: 6pt 0;
+  }
+  .print-assignment-detail dl > div:nth-child(20) dd::after,
+  .print-assignment-detail dl > div:last-child dd::after {
+    content: "";
+  }
+  .celebration {
+    display: none;
+  }
+}

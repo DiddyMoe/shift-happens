@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-employee-restriction"
+description = "Enables the create_employee_restriction command without any pre-configured scope."
+commands.allow = ["create_employee_restriction"]
+
+[[permission]]
+identifier = "deny-create-employee-restriction"
+description = "Denies the create_employee_restriction command without any pre-configured scope."
+commands.deny = ["create_employee_restriction"]

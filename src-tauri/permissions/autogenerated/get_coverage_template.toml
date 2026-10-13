@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-coverage-template"
+description = "Enables the get_coverage_template command without any pre-configured scope."
+commands.allow = ["get_coverage_template"]
+
+[[permission]]
+identifier = "deny-get-coverage-template"
+description = "Denies the get_coverage_template command without any pre-configured scope."
+commands.deny = ["get_coverage_template"]

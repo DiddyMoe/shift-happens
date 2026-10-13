@@ -1,0 +1,115 @@
+@layer components {
+  /* Export and Print dialogs, opened from a schedule's action row. */
+  .out-dialog {
+    width: min(600px, calc(100vw - 32px));
+  }
+  .out-subject {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+    color: var(--ink-2);
+    font-size: 13.5px;
+  }
+  .out-subject strong {
+    color: var(--ink);
+  }
+
+  /* Format choice: two radio cards, the whole card is the click target. */
+  .out-formats {
+    display: grid;
+    gap: 8px;
+    margin: 20px 0 14px;
+  }
+  .out-formats legend {
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .out-format {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .out-format:hover {
+    border-color: var(--rule-strong);
+  }
+  .out-format:has(input:checked) {
+    border-color: var(--marker);
+    background: var(--info-soft);
+  }
+  .out-format input {
+    margin-top: 3px;
+  }
+  .out-format-title {
+    display: block;
+    font-weight: 600;
+  }
+  .out-format-detail {
+    display: block;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  .out-dialog .notice,
+  .out-dialog .status-line {
+    margin-top: 14px;
+  }
+  .out-result {
+    margin-top: 14px;
+  }
+  .out-result h3 {
+    margin-bottom: 8px;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* Print preview: a full-height sheet viewer with its actions pinned on top. */
+  .print-dialog {
+    width: min(1180px, calc(100vw - 32px));
+    height: calc(100dvh - 32px);
+    max-width: none;
+    max-height: none;
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--wall);
+    box-shadow: var(--overlay-shadow);
+  }
+  .print-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .print-dialog::backdrop {
+    background: var(--backdrop);
+  }
+  .print-dialog-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--rule);
+    background: var(--board);
+  }
+  .print-dialog-bar h2 {
+    margin-bottom: 2px;
+    font-size: 18px;
+  }
+  .print-dialog-body {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 24px 24px;
+  }
+  .print-dialog-body > .notice,
+  .print-dialog-body > .status-line {
+    margin-top: 20px;
+  }
+}

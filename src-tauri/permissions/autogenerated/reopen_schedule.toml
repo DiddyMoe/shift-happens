@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-reopen-schedule"
+description = "Enables the reopen_schedule command without any pre-configured scope."
+commands.allow = ["reopen_schedule"]
+
+[[permission]]
+identifier = "deny-reopen-schedule"
+description = "Denies the reopen_schedule command without any pre-configured scope."
+commands.deny = ["reopen_schedule"]

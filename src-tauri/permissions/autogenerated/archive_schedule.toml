@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-archive-schedule"
+description = "Enables the archive_schedule command without any pre-configured scope."
+commands.allow = ["archive_schedule"]
+
+[[permission]]
+identifier = "deny-archive-schedule"
+description = "Denies the archive_schedule command without any pre-configured scope."
+commands.deny = ["archive_schedule"]

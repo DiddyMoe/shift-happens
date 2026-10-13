@@ -1,0 +1,53 @@
+@layer components {
+  /* Availability and PTO are two stacked regions in the detail pane. */
+  .avail-panel + .avail-panel {
+    margin-top: 32px;
+    padding-top: 28px;
+    border-top: 1px solid var(--rule);
+  }
+  .avail-panel > .toolbar {
+    margin-bottom: 12px;
+  }
+
+  .avail-empty {
+    padding: 16px 18px;
+  }
+
+  /* Keep each date and clock on one line inside the table. */
+  .avail-table .display {
+    white-space: nowrap;
+  }
+  .avail-window {
+    gap: 6px;
+  }
+  .avail-table tbody tr.is-selected td {
+    background: var(--highlight-soft);
+  }
+  .avail-table tbody tr.is-selected td:first-child {
+    box-shadow: inset 3px 0 0 var(--highlight);
+  }
+
+  /* The open entry editor. */
+  .avail-form {
+    margin-top: 16px;
+  }
+  .avail-form > .detail-header {
+    margin-bottom: 16px;
+  }
+  .avail-form > .detail-header h3 {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.25;
+  }
+  .avail-form > .notice {
+    margin: 0 0 18px;
+  }
+  .avail-preview {
+    margin-top: 16px;
+    padding: 10px 14px;
+    color: var(--ink);
+    font-size: 13.5px;
+    overflow-wrap: anywhere;
+  }
+}

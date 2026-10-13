@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-preview-employment-defaults"
+description = "Enables the preview_employment_defaults command without any pre-configured scope."
+commands.allow = ["preview_employment_defaults"]
+
+[[permission]]
+identifier = "deny-preview-employment-defaults"
+description = "Denies the preview_employment_defaults command without any pre-configured scope."
+commands.deny = ["preview_employment_defaults"]

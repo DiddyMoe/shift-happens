@@ -1,0 +1,46 @@
+@layer components {
+  /* A four-digit year needs less room than the other filters. */
+  .toolbar > label.hol-year-field {
+    flex: 0 1 130px;
+  }
+
+  /* Yearly overview: rotation facts beside the collision check. */
+  .hol-year {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: 24px 40px;
+    align-items: start;
+    margin: 8px 0 28px;
+  }
+  .hol-year h2 {
+    margin-bottom: 10px;
+  }
+  .hol-year .notice,
+  .hol-year .status-line {
+    margin-bottom: 0;
+  }
+  .hol-collisions {
+    margin: 0;
+  }
+
+  /* Holiday list rows: date on one line, set and coverage on the next. */
+  .hol-item-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+  }
+
+  .hol-form > .notice {
+    margin: 0 0 18px;
+  }
+  .hol-form .form-section > .fields + .field-help {
+    margin-top: 12px;
+  }
+
+  @media (max-width: 980px) {
+    .hol-year {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+}

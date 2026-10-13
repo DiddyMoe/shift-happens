@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-holiday"
+description = "Enables the update_holiday command without any pre-configured scope."
+commands.allow = ["update_holiday"]
+
+[[permission]]
+identifier = "deny-update-holiday"
+description = "Denies the update_holiday command without any pre-configured scope."
+commands.deny = ["update_holiday"]

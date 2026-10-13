@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-archive-coverage-item"
+description = "Enables the archive_coverage_item command without any pre-configured scope."
+commands.allow = ["archive_coverage_item"]
+
+[[permission]]
+identifier = "deny-archive-coverage-item"
+description = "Denies the archive_coverage_item command without any pre-configured scope."
+commands.deny = ["archive_coverage_item"]

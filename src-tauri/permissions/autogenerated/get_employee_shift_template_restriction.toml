@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-employee-shift-template-restriction"
+description = "Enables the get_employee_shift_template_restriction command without any pre-configured scope."
+commands.allow = ["get_employee_shift_template_restriction"]
+
+[[permission]]
+identifier = "deny-get-employee-shift-template-restriction"
+description = "Denies the get_employee_shift_template_restriction command without any pre-configured scope."
+commands.deny = ["get_employee_shift_template_restriction"]

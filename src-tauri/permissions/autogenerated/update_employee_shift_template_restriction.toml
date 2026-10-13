@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-update-employee-shift-template-restriction"
+description = "Enables the update_employee_shift_template_restriction command without any pre-configured scope."
+commands.allow = ["update_employee_shift_template_restriction"]
+
+[[permission]]
+identifier = "deny-update-employee-shift-template-restriction"
+description = "Denies the update_employee_shift_template_restriction command without any pre-configured scope."
+commands.deny = ["update_employee_shift_template_restriction"]

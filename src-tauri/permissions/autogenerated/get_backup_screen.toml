@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-backup-screen"
+description = "Enables the get_backup_screen command without any pre-configured scope."
+commands.allow = ["get_backup_screen"]
+
+[[permission]]
+identifier = "deny-get-backup-screen"
+description = "Denies the get_backup_screen command without any pre-configured scope."
+commands.deny = ["get_backup_screen"]

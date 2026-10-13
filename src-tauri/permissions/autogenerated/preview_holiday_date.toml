@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-preview-holiday-date"
+description = "Enables the preview_holiday_date command without any pre-configured scope."
+commands.allow = ["preview_holiday_date"]
+
+[[permission]]
+identifier = "deny-preview-holiday-date"
+description = "Denies the preview_holiday_date command without any pre-configured scope."
+commands.deny = ["preview_holiday_date"]

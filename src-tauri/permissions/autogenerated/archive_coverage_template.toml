@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-archive-coverage-template"
+description = "Enables the archive_coverage_template command without any pre-configured scope."
+commands.allow = ["archive_coverage_template"]
+
+[[permission]]
+identifier = "deny-archive-coverage-template"
+description = "Denies the archive_coverage_template command without any pre-configured scope."
+commands.deny = ["archive_coverage_template"]

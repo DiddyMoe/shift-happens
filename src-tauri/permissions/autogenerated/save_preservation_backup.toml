@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-save-preservation-backup"
+description = "Enables the save_preservation_backup command without any pre-configured scope."
+commands.allow = ["save_preservation_backup"]
+
+[[permission]]
+identifier = "deny-save-preservation-backup"
+description = "Denies the save_preservation_backup command without any pre-configured scope."
+commands.deny = ["save_preservation_backup"]

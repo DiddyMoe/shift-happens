@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-create-shift-template"
+description = "Enables the create_shift_template command without any pre-configured scope."
+commands.allow = ["create_shift_template"]
+
+[[permission]]
+identifier = "deny-create-shift-template"
+description = "Denies the create_shift_template command without any pre-configured scope."
+commands.deny = ["create_shift_template"]

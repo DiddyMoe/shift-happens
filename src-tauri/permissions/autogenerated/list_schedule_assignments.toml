@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-schedule-assignments"
+description = "Enables the list_schedule_assignments command without any pre-configured scope."
+commands.allow = ["list_schedule_assignments"]
+
+[[permission]]
+identifier = "deny-list-schedule-assignments"
+description = "Denies the list_schedule_assignments command without any pre-configured scope."
+commands.deny = ["list_schedule_assignments"]

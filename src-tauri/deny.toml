@@ -1,0 +1,38 @@
+# Audit the supported Windows installer and its build dependencies. Cargo's
+# lockfile also resolves Unix-only GTK dependencies that are never compiled
+# into this artifact; keep those entries intact instead of hiding advisories.
+[graph]
+targets = ["x86_64-pc-windows-msvc"]
+features = ["tauri/custom-protocol"]
+all-features = false
+no-default-features = false
+
+[advisories]
+db-urls = ["https://github.com/RustSec/advisory-db"]
+unmaintained = "all"
+unsound = "all"
+yanked = "deny"
+ignore = []
+unused-ignored-advisory = "deny"
+
+# Permissive and weak-copyleft licenses used by the shipped dependency graph.
+# Their notices are reproduced in the bundled third-party notices.
+[licenses]
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+confidence-threshold = 0.9
+
+# The application crate is private; bundled dependencies are audited above.
+[licenses.private]
+ignore = true

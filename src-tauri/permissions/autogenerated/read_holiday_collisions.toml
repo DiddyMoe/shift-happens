@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-read-holiday-collisions"
+description = "Enables the read_holiday_collisions command without any pre-configured scope."
+commands.allow = ["read_holiday_collisions"]
+
+[[permission]]
+identifier = "deny-read-holiday-collisions"
+description = "Denies the read_holiday_collisions command without any pre-configured scope."
+commands.deny = ["read_holiday_collisions"]

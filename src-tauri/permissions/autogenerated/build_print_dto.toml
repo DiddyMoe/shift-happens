@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-build-print-dto"
+description = "Enables the build_print_dto command without any pre-configured scope."
+commands.allow = ["build_print_dto"]
+
+[[permission]]
+identifier = "deny-build-print-dto"
+description = "Denies the build_print_dto command without any pre-configured scope."
+commands.deny = ["build_print_dto"]

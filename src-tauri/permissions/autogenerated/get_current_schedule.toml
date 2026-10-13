@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-current-schedule"
+description = "Enables the get_current_schedule command without any pre-configured scope."
+commands.allow = ["get_current_schedule"]
+
+[[permission]]
+identifier = "deny-get-current-schedule"
+description = "Denies the get_current_schedule command without any pre-configured scope."
+commands.deny = ["get_current_schedule"]

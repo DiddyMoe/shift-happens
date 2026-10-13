@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-get-shift-position"
+description = "Enables the get_shift_position command without any pre-configured scope."
+commands.allow = ["get_shift_position"]
+
+[[permission]]
+identifier = "deny-get-shift-position"
+description = "Denies the get_shift_position command without any pre-configured scope."
+commands.deny = ["get_shift_position"]

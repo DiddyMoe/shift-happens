@@ -1,0 +1,75 @@
+@layer components {
+  /* Loading, error and empty states inside the employee list column. */
+  .emp-list-state {
+    padding: 12px 14px;
+  }
+  .emp-list-state > .notice,
+  .emp-list-state > .status-line {
+    margin: 0;
+  }
+
+  /* Help paragraphs that follow a field grid (not an intro under a legend). */
+  .emp-help {
+    display: grid;
+    gap: 6px;
+    margin-top: 14px;
+  }
+  .emp-help > p.field-help {
+    margin-top: 0;
+  }
+
+  /* A field whose help text sits outside its <label>, so the help describes
+     the input instead of becoming part of its name. */
+  .emp-field {
+    display: grid;
+    gap: 6px;
+    align-content: start;
+    min-width: 0;
+  }
+  .emp-field > p.field-help {
+    margin-top: 0;
+  }
+
+  /* Links to the restrictions kept on the template and position screens. */
+  .emp-related {
+    gap: 6px 20px;
+    margin-bottom: 18px;
+    font-size: 13.5px;
+  }
+
+  /* One recurring restriction: summary on the left, actions on the right. */
+  .emp-restriction {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
+  .emp-restriction-body {
+    display: grid;
+    flex: 1 1 260px;
+    gap: 2px;
+    min-width: 0;
+  }
+  .emp-restriction-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+  }
+  .emp-note {
+    margin-top: 4px;
+    max-width: 80ch;
+    color: var(--ink-2);
+    font-size: 13px;
+  }
+  .emp-restriction-form {
+    margin-top: 16px;
+  }
+
+  /* Before and after values in the reset-defaults confirmation. */
+  .emp-reset-facts {
+    margin: 12px 0;
+  }
+}

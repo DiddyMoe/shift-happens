@@ -1,0 +1,178 @@
+@layer components {
+  /* The Generate dialog: a wide modal with the form on the left and the live
+     readiness checklist on the right. */
+  .gen-dialog {
+    width: min(1040px, calc(100vw - 32px));
+  }
+  .gen-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+    gap: 28px 40px;
+    align-items: start;
+  }
+  .gen-form {
+    min-width: 0;
+    max-width: 640px;
+  }
+  .gen-fields {
+    gap: 18px;
+  }
+  .gen-month {
+    max-width: 260px;
+  }
+  .gen-mode {
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+  }
+  .gen-mode-label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* The resolved inclusive range: the dates this draft will cover. */
+  .gen-range {
+    padding: 10px 14px;
+    border-radius: 7px;
+    background: var(--board-2);
+    color: var(--ink-2);
+    font-size: 13.5px;
+  }
+  .gen-range strong {
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  /* Readiness checklist */
+  .gen-readiness {
+    display: grid;
+    gap: 10px;
+  }
+  .gen-readiness-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px 12px;
+  }
+  .gen-readiness-header h3 {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .gen-readiness > .notice,
+  .gen-readiness > .status-line,
+  .gen-readiness > .muted {
+    margin: 0;
+    font-size: 13.5px;
+  }
+  .gen-checklist {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .gen-checklist > li {
+    display: grid;
+    gap: 4px;
+    padding: 12px 0;
+    border-top: 1px solid var(--rule);
+  }
+  .gen-checklist > li:last-child {
+    padding-bottom: 4px;
+  }
+  .gen-check-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .gen-check-head h4 {
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .gen-check-detail {
+    color: var(--ink-2);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .gen-check-detail .display {
+    color: var(--ink);
+  }
+  details.gen-check-detail p {
+    margin-bottom: 6px;
+  }
+  .gen-periods li {
+    font-size: 12.5px;
+  }
+  .gen-check-link {
+    justify-self: start;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .gen-readiness-note {
+    padding-top: 10px;
+    border-top: 1px solid var(--rule);
+  }
+
+  /* Generation failure and result */
+  .gen-outcome {
+    scroll-margin-top: 16px;
+  }
+  .gen-outcome .notice {
+    margin-bottom: 0;
+  }
+  .gen-result {
+    display: grid;
+    gap: 12px;
+  }
+  .gen-result > .notice {
+    margin: 0;
+  }
+  .gen-result .counts {
+    margin-top: 2px;
+  }
+  .gen-warnings {
+    display: grid;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .gen-warning-counts {
+    max-width: 640px;
+  }
+  .gen-warning-counts > li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 7px 0;
+    font-size: 13.5px;
+  }
+  .gen-warning-counts > li:first-child {
+    padding-top: 0;
+  }
+  .gen-warnings details > .finding-list {
+    margin-top: 4px;
+  }
+  .gen-warnings .finding-list > li {
+    font-size: 13.5px;
+  }
+  .gen-pager {
+    margin-top: 12px;
+  }
+
+  /* Scope notes close the dialog. */
+  .gen-scope {
+    margin-top: 20px;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule);
+  }
+
+  @media (max-width: 980px) {
+    .gen-layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .gen-form {
+      max-width: none;
+    }
+  }
+}

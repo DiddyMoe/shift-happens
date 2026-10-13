@@ -1,0 +1,395 @@
+@layer components {
+  /* The sidebar sits on the wall; the main region is the board mounted on it. */
+  .app-shell {
+    display: grid;
+    grid-template-columns: 228px minmax(0, 1fr);
+    height: 100dvh;
+    background: var(--wall);
+  }
+
+  .skip-link {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 20;
+    padding: 10px 14px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--highlight);
+    color: var(--on-highlight);
+    font-weight: 600;
+    transform: translateY(-160%);
+  }
+  .skip-link:focus {
+    transform: none;
+  }
+
+  .sidebar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 10px 12px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 8px 18px;
+  }
+  .brand img {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+  }
+  .brand-name {
+    font-family: var(--font-display);
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+  }
+
+  /* The nav fills the sidebar so the utility links settle at its foot. */
+  .sidebar nav {
+    display: flex;
+    flex: 1 0 auto;
+    flex-direction: column;
+  }
+  /* Groups are set apart by a hairline and more space above each header
+     than below it, so a header reads as the caption of the links under it. */
+  .nav-group + .nav-group,
+  .nav-list.nav-utility {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule);
+  }
+  /* A caption, not a control: smaller, tracked capitals in the display face,
+     with no hover, focus or pointer state. */
+  .nav-group-label {
+    padding: 0 10px 6px;
+    color: var(--ink-3);
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: default;
+    user-select: none;
+  }
+  .nav-list.nav-utility {
+    margin-top: auto;
+  }
+  .nav-group:last-of-type {
+    margin-bottom: 14px;
+  }
+  .nav-list {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    color: var(--ink-2);
+    font-size: 13.5px;
+    line-height: 1.3;
+    text-decoration: none;
+  }
+  .nav-link:hover {
+    background: color-mix(in oklab, var(--board) 70%, transparent);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .nav-link.active {
+    background: var(--board);
+    box-shadow: inset 3px 0 0 var(--highlight);
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .sidebar-footer {
+    display: grid;
+    gap: 6px;
+    padding: 8px 4px 0;
+  }
+  .sidebar-footer .btn {
+    justify-content: flex-start;
+    width: 100%;
+  }
+  .sidebar-about {
+    justify-self: start;
+    padding: 0 8px;
+    color: var(--ink-3);
+    font-size: 12px;
+    text-decoration: none;
+  }
+  .sidebar-about:hover,
+  .sidebar-about.active {
+    color: var(--ink);
+    text-decoration: underline;
+  }
+
+  .main-content {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    margin: 8px 8px 8px 0;
+    overflow: auto;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--board);
+  }
+  .shell-notices {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 16px 32px 0;
+  }
+  .shell-notices .notice {
+    margin: 0 0 8px;
+  }
+
+  /* Help: a fixed header, the section list on the left, one section at a
+     time on the right. The quick reference exists only for printing. */
+  .help-dialog {
+    width: min(920px, calc(100vw - 32px));
+    height: min(680px, calc(100dvh - 32px));
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--board);
+    box-shadow: var(--overlay-shadow);
+  }
+  .help-dialog[open] {
+    display: flex;
+    flex-direction: column;
+  }
+  .help-dialog::backdrop {
+    background: var(--backdrop);
+  }
+  .help-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .help-header h2 {
+    font-size: 20px;
+  }
+  .help-body {
+    display: grid;
+    flex: 1;
+    grid-template-columns: 200px minmax(0, 1fr);
+    min-height: 0;
+  }
+  .help-nav {
+    padding: 12px 10px;
+    overflow-y: auto;
+    border-right: 1px solid var(--rule);
+    background: var(--wall);
+  }
+  .help-nav ul {
+    display: grid;
+    gap: 1px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .help-nav-item {
+    width: 100%;
+    min-height: 32px;
+    padding: 5px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 13.5px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .help-nav-item:hover {
+    background: color-mix(in oklab, var(--board) 70%, transparent);
+    color: var(--ink);
+  }
+  .help-nav-item[aria-current="true"] {
+    background: var(--board);
+    box-shadow: inset 3px 0 0 var(--highlight);
+    color: var(--ink);
+    font-weight: 600;
+  }
+  .help-section {
+    padding: 20px 28px 28px;
+    overflow-y: auto;
+  }
+  .help-section h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+  }
+  .help-section h4 {
+    margin: 22px 0 8px;
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .help-section p,
+  .help-section li {
+    color: var(--ink-2);
+    font-size: 13.5px;
+    line-height: 1.6;
+  }
+  .help-section p + p {
+    margin-top: 8px;
+  }
+  .help-topic h4 {
+    margin-top: 18px;
+  }
+  .help-section .setup-checklist h4 {
+    margin-top: 18px;
+  }
+  .help-keys {
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  .help-keys th,
+  .help-keys td {
+    padding: 7px 16px 7px 0;
+    border-bottom: 1px solid var(--rule);
+    text-align: left;
+    vertical-align: top;
+  }
+  .help-keys th {
+    font-weight: 400;
+    white-space: nowrap;
+  }
+  .help-keys td {
+    color: var(--ink-2);
+  }
+  kbd {
+    padding: 1px 6px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 4px;
+    background: var(--board-2);
+    font-family: inherit;
+    font-size: 12.5px;
+  }
+  .help-workflow {
+    display: grid;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+  }
+  .help-workflow li {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 10px;
+    padding: 6px 0;
+    counter-increment: step;
+  }
+  .help-workflow li::before {
+    content: counter(step);
+    grid-row: span 2;
+    color: var(--ink-3);
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .help-workflow li a,
+  .help-workflow li strong {
+    font-weight: 600;
+  }
+  .help-workflow li p {
+    margin: 0;
+  }
+  .help-quick-reference {
+    display: none;
+  }
+  @media (max-width: 720px) {
+    .help-body {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+    .help-nav {
+      border-right: 0;
+      border-bottom: 1px solid var(--rule);
+    }
+    .help-nav ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .help-nav-item {
+      width: auto;
+    }
+  }
+
+  /* Startup gate (before the shell exists) */
+  .startup-screen {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    row-gap: 16px;
+    min-height: 100dvh;
+    padding: 24px;
+    background: var(--wall);
+  }
+  .startup-card {
+    width: min(560px, 100%);
+    padding: 28px;
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    background: var(--board);
+  }
+  .startup-card h1 {
+    margin-bottom: 8px;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    grid-template-columns: 196px minmax(0, 1fr);
+  }
+  .brand-name {
+    font-size: 17px;
+  }
+  .page {
+    padding: 22px 20px 32px;
+  }
+  .shell-notices {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .sidebar {
+    max-height: 200px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .main-content {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+  }
+}

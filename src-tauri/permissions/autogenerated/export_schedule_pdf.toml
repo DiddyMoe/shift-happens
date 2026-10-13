@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-export-schedule-pdf"
+description = "Enables the export_schedule_pdf command without any pre-configured scope."
+commands.allow = ["export_schedule_pdf"]
+
+[[permission]]
+identifier = "deny-export-schedule-pdf"
+description = "Denies the export_schedule_pdf command without any pre-configured scope."
+commands.deny = ["export_schedule_pdf"]

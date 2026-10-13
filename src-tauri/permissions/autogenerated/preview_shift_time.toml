@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-preview-shift-time"
+description = "Enables the preview_shift_time command without any pre-configured scope."
+commands.allow = ["preview_shift_time"]
+
+[[permission]]
+identifier = "deny-preview-shift-time"
+description = "Denies the preview_shift_time command without any pre-configured scope."
+commands.deny = ["preview_shift_time"]

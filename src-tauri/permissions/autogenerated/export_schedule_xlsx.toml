@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-export-schedule-xlsx"
+description = "Enables the export_schedule_xlsx command without any pre-configured scope."
+commands.allow = ["export_schedule_xlsx"]
+
+[[permission]]
+identifier = "deny-export-schedule-xlsx"
+description = "Denies the export_schedule_xlsx command without any pre-configured scope."
+commands.deny = ["export_schedule_xlsx"]

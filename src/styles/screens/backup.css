@@ -1,0 +1,65 @@
+@layer components {
+  /* Regions on the Backup screen are separated by rules, not panels. */
+  .bk-block + .bk-block {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+  .bk-block > h2 {
+    margin-bottom: 12px;
+  }
+  .bk-note {
+    margin-top: 10px;
+  }
+  .bk-block > .notice {
+    margin-bottom: 0;
+  }
+
+  .bk-action {
+    display: grid;
+    gap: 10px;
+    justify-items: start;
+  }
+  .bk-action > h2 {
+    margin-bottom: 0;
+  }
+  .bk-action > .muted {
+    max-width: 68ch;
+    font-size: 13.5px;
+  }
+  .bk-action > .status-line {
+    margin: 0;
+  }
+
+  /* Restore follows the backup notices, so it draws its own rule. */
+  .bk-restore {
+    margin-top: 28px;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+  }
+  .bk-restore-facts {
+    margin-bottom: 12px;
+  }
+
+  .bk-result {
+    margin-top: 16px;
+  }
+  .bk-result .facts {
+    margin-top: 4px;
+  }
+  .bk-result > .notice {
+    margin-bottom: 0;
+  }
+
+  /* Preservation mode: rendered by the startup gate as a second card under
+     the "Startup stopped" card, outside the app shell. */
+  .bk-intro {
+    margin-bottom: 20px;
+  }
+  .bk-intro h2 {
+    margin-bottom: 6px;
+  }
+  .bk-intro .muted {
+    font-size: 13.5px;
+  }
+}
