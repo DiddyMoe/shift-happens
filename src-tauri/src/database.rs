@@ -494,6 +494,38 @@ pub struct MigrationState {
     pub current: bool,
 }
 
+/// A real history has one row per embedded migration; more rows are malformed.
+pub(crate) const MIGRATION_HISTORY_LIMIT: usize = 1000;
+
+pub(crate) struct AppliedMigration {
+    pub(crate) version: i64,
+    pub(crate) succeeded: bool,
+    pub(crate) checksum: Vec<u8>,
+}
+
+/// Reads `_sqlx_migrations` in version order, at most one row past the limit.
+/// `success` is read as a raw integer that must be exactly 1: SQLx would decode
+/// any nonzero value as `true`. `None` is a row with unexpected column types.
+pub(crate) async fn read_migration_history(
+    connection: &mut SqliteConnection,
+) -> Result<Vec<Option<AppliedMigration>>, sqlx::Error> {
+    let rows = sqlx::query(
+        "SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version LIMIT 1001",
+    )
+    .fetch_all(connection)
+    .await?;
+    Ok(rows
+        .iter()
+        .map(|row| {
+            Some(AppliedMigration {
+                version: row.try_get("version").ok()?,
+                succeeded: row.try_get::<i64, _>("success").ok()? == 1,
+                checksum: row.try_get("checksum").ok()?,
+            })
+        })
+        .collect())
+}
+
 async fn migration_state(connection: &mut SqliteConnection) -> AppResult<MigrationState> {
     validate_embedded_migrations()?;
     let exists: i64 = sqlx::query_scalar(
@@ -509,21 +541,19 @@ async fn migration_state(connection: &mut SqliteConnection) -> AppResult<Migrati
             current: false,
         });
     }
-    let rows =
-        sqlx::query("SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version")
-            .fetch_all(&mut *connection)
-            .await?;
+    let rows = read_migration_history(&mut *connection).await?;
     let mut applied_versions = Vec::with_capacity(rows.len());
-    let mut matches = true;
+    let mut matches = rows.len() <= MIGRATION_HISTORY_LIMIT;
     for row in rows {
-        let version: i64 = row.try_get("version")?;
-        let success: bool = row.try_get("success")?;
-        let checksum: Vec<u8> = row.try_get("checksum")?;
-        matches &= success
-            && MIGRATOR
-                .iter()
-                .any(|m| m.version == version && m.checksum.as_ref() == checksum.as_slice());
-        applied_versions.push(version);
+        let Some(row) = row else {
+            matches = false;
+            continue;
+        };
+        matches &= row.succeeded
+            && MIGRATOR.iter().any(|m| {
+                m.version == row.version && m.checksum.as_ref() == row.checksum.as_slice()
+            });
+        applied_versions.push(row.version);
     }
     let current = matches && applied_versions == embedded_versions;
     Ok(MigrationState {

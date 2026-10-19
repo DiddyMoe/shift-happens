@@ -8,7 +8,7 @@ use crate::{
     safe_destination::{DestinationPolicy, SafeDestinationService},
 };
 use serde::Serialize;
-use sqlx::{Connection, Row, SqliteConnection};
+use sqlx::{Connection, SqliteConnection};
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -195,14 +195,21 @@ pub(crate) async fn inspect_existing(paths: &DatabasePaths) -> AppResult<Inspect
     let result = async {
         database::inspect_engine(&mut connection).await?;
         let wal = sqlx::query_scalar::<_, String>("PRAGMA journal_mode")
-            .fetch_one(&mut connection).await.map_err(|_| access_error())? == "wal";
+            .fetch_one(&mut connection)
+            .await
+            .map_err(|_| access_error())?
+            == "wal";
         let mut tx = connection.begin().await.map_err(|_| access_error())?;
-        let exists: i64 = sqlx::query_scalar("SELECT count(*) FROM sqlite_schema WHERE type='table' AND name='_sqlx_migrations'")
-            .fetch_one(&mut *tx).await.map_err(|_| access_error())?;
+        let exists: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM sqlite_schema WHERE type='table' AND name='_sqlx_migrations'",
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|_| access_error())?;
         let mut reasons = vec![];
         let mut physically_readable = true;
         match health(&mut tx, false).await {
-            Ok(true) => {},
+            Ok(true) => {}
             Ok(false) => reasons.push(Classification::DatabaseIntegrityError),
             Err(error) => {
                 physically_readable = false;
@@ -216,33 +223,47 @@ pub(crate) async fn inspect_existing(paths: &DatabasePaths) -> AppResult<Inspect
         if physically_readable && exists == 0 {
             reasons.push(Classification::MigrationMetadataMissing);
         } else if physically_readable {
-            // Bound malformed history; a real app has one row per embedded migration.
-            match sqlx::query("SELECT version, success, checksum FROM _sqlx_migrations ORDER BY version LIMIT 1001")
-                .fetch_all(&mut *tx).await
-            {
+            match database::read_migration_history(&mut tx).await {
                 Ok(rows) => {
-                    if rows.len() > 1000 { reasons.push(Classification::FailedOrDirtyMigration); }
+                    if rows.len() > database::MIGRATION_HISTORY_LIMIT {
+                        reasons.push(Classification::FailedOrDirtyMigration);
+                    }
                     for row in rows {
-                        let fields = (row.try_get::<i64, _>("version"), row.try_get::<i64, _>("success"), row.try_get::<Vec<u8>, _>("checksum"));
-                        let (Ok(version), Ok(success), Ok(checksum)) = fields else {
+                        let Some(database::AppliedMigration {
+                            version,
+                            succeeded,
+                            checksum,
+                        }) = row
+                        else {
                             reasons.push(Classification::FailedOrDirtyMigration);
                             continue;
                         };
-                        if success != 1 || versions.last() == Some(&version) {
+                        if !succeeded || versions.last() == Some(&version) {
                             reasons.push(Classification::FailedOrDirtyMigration);
                         }
                         versions.push(version);
                         match embedded.iter().find(|m| m.version == version) {
-                            Some(m) if m.checksum.as_ref() != checksum.as_slice() => reasons.push(Classification::ChecksumMismatch),
-                            Some(_) => {},
+                            Some(m) if m.checksum.as_ref() != checksum.as_slice() => {
+                                reasons.push(Classification::ChecksumMismatch)
+                            }
+                            Some(_) => {}
                             None => reasons.push(Classification::NewerOrUnknownMigration),
                         }
                     }
-                    let known: Vec<i64> = versions.iter().copied().filter(|v| embedded.iter().any(|m| m.version == *v)).collect();
-                    if !known.iter().zip(embedded.iter()).all(|(v, m)| *v == m.version) || known.len() > embedded.len() {
+                    let known: Vec<i64> = versions
+                        .iter()
+                        .copied()
+                        .filter(|v| embedded.iter().any(|m| m.version == *v))
+                        .collect();
+                    if !known
+                        .iter()
+                        .zip(embedded.iter())
+                        .all(|(v, m)| *v == m.version)
+                        || known.len() > embedded.len()
+                    {
                         reasons.push(Classification::FailedOrDirtyMigration);
                     }
-                },
+                }
                 Err(error) => {
                     // A malformed metadata table is dirty history. Locking or
                     // physical read errors must retain their own classification.
@@ -254,19 +275,30 @@ pub(crate) async fn inspect_existing(paths: &DatabasePaths) -> AppResult<Inspect
                     } else {
                         return Err(database::sqlite_inspection_error(error));
                     }
-                },
+                }
             }
         }
         reasons.sort();
         reasons.dedup();
-        let classification = reasons.first().copied().unwrap_or(if versions.len() == embedded.len() { Classification::Current } else { Classification::Pending });
+        let classification =
+            reasons
+                .first()
+                .copied()
+                .unwrap_or(if versions.len() == embedded.len() {
+                    Classification::Current
+                } else {
+                    Classification::Pending
+                });
         // Routine current startup uses quick_check. A pending schema requires
         // the full check before even attempting the preservation primitive.
         if classification == Classification::Pending {
             match health(&mut tx, true).await {
-                Ok(true) => {},
+                Ok(true) => {}
                 Ok(false) => reasons.push(Classification::DatabaseIntegrityError),
-                Err(error) => { physically_readable = false; reasons.push(reason_for(&error)); },
+                Err(error) => {
+                    physically_readable = false;
+                    reasons.push(reason_for(&error));
+                }
             }
         }
         tx.rollback().await.map_err(|_| access_error())?;
@@ -279,7 +311,8 @@ pub(crate) async fn inspect_existing(paths: &DatabasePaths) -> AppResult<Inspect
             physically_readable,
             wal,
         })
-    }.await;
+    }
+    .await;
     let closed = connection.close().await.map_err(|_| access_error());
     closed?;
     result
