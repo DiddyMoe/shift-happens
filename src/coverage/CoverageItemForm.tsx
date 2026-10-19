@@ -50,6 +50,9 @@ export function CoverageItemForm({
   );
   const root = useRef<HTMLFormElement>(null);
   useRevealOnMount(root);
+  // The template, position and shift lists keep the saved and the chosen
+  // record, marked once no longer active, so each always shows what Save
+  // sends.
   return (
     <form
       ref={root}
@@ -90,7 +93,10 @@ export function CoverageItemForm({
               >
                 {templates
                   .filter(
-                    (t) => t.id === initial.coverage_template_id || isActive(t),
+                    (t) =>
+                      t.id === initial.coverage_template_id ||
+                      t.id === data.coverage_template_id ||
+                      isActive(t),
                   )
                   .map((t) => (
                     <option key={t.id} value={t.id}>
@@ -115,7 +121,10 @@ export function CoverageItemForm({
             >
               {positions
                 .filter(
-                  (p) => p.id === initial.shift_position_id || isActive(p),
+                  (p) =>
+                    p.id === initial.shift_position_id ||
+                    p.id === data.shift_position_id ||
+                    isActive(p),
                 )
                 .map((p) => (
                   <option key={p.id} value={p.id}>
@@ -136,7 +145,10 @@ export function CoverageItemForm({
             >
               {shifts
                 .filter(
-                  (s) => s.id === initial.shift_template_id || isActive(s),
+                  (s) =>
+                    s.id === initial.shift_template_id ||
+                    s.id === data.shift_template_id ||
+                    isActive(s),
                 )
                 .map((s) => (
                   <option key={s.id} value={s.id}>

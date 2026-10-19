@@ -471,9 +471,10 @@ function RestrictionForm<T extends RestrictionTargetRecord>({
   onCancel: () => void;
 }) {
   const [values, setValues] = useState(initial);
-  // The saved target stays listed even when it is no longer active.
+  // The saved and the chosen target stay listed even when no longer active,
+  // so the list always shows what Save sends.
   const options = targets.filter(
-    (t) => t.id === initial.targetId || isActive(t),
+    (t) => t.id === initial.targetId || t.id === values.targetId || isActive(t),
   );
   const root = useRef<HTMLFormElement>(null);
   useRevealOnMount(root);
