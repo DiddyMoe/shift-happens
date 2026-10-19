@@ -71,16 +71,17 @@ export function EmployeeRestrictions({ employee }: { employee: Employee }) {
   const focusAfterRender = useFocusAfterRender();
   const focusHeading = (onlyIfLost = false) =>
     focusAfterRender(() => heading.current, onlyIfLost);
-  // A new employee revision (saved, archived or reset) starts the restriction
-  // panel fresh, as a remount would, while the rows stay on screen.
-  const [seenRevision, setSeenRevision] = useState(employee.revision);
-  if (seenRevision !== employee.revision) {
-    setSeenRevision(employee.revision);
+  // Archiving the employee closes any open restriction form or dialog, since
+  // an archived employee's restrictions can't change. Other employee saves
+  // (notes, name, defaults) keep them open; restrictions save on their own.
+  const archived = employee.archived_at !== null;
+  const [seenArchived, setSeenArchived] = useState(archived);
+  if (seenArchived !== archived) {
+    setSeenArchived(archived);
     setDraft(null);
     setArchive(null);
     setFeedback(null);
   }
-  const archived = employee.archived_at !== null;
 
   function edit(restriction: EmployeeRestriction | null) {
     setFeedback(null);
