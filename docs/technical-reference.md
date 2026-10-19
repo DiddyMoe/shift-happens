@@ -114,6 +114,14 @@ npm run build
 cargo xwin build --manifest-path src-tauri/Cargo.toml --locked --target x86_64-pc-windows-msvc --features tauri/custom-protocol --bins --lib
 ```
 
+`npm run tauri:dev:wsl` runs `tauri dev` through cargo-xwin and launches the
+debug executable on Windows through WSL interop; with `networkingMode=mirrored`
+it loads the WSL Vite server at `127.0.0.1:1420`. Cargo's runner is `setpriv
+--pdeathsig TERM` because cargo-xwin otherwise uses Wine, and because `tauri dev`
+stops the app by killing Cargo, which would leave the Windows process running.
+Close the installed application first: it shares the single-instance
+identifier, so the debug build would only bring it to the front.
+
 ## Commands
 
 | Command                   | Purpose                                                     |
@@ -128,6 +136,7 @@ cargo xwin build --manifest-path src-tauri/Cargo.toml --locked --target x86_64-p
 | `npm run rust:fmt`        | Rust formatting check                                       |
 | `npm run rust:clippy`     | Rust static analysis, with warnings denied (Windows)        |
 | `npm run tauri:dev`       | Launch the native development app (Windows)                 |
+| `npm run tauri:dev:wsl`   | Launch the native development app from WSL (cargo-xwin)     |
 | `npm run tauri:build`     | Build the release executable without an installer (Windows) |
 | `npm run tauri:installer` | Build the current-user NSIS installer (Windows)             |
 | `npm run release:windows` | Run fail-fast local internal-candidate build/audit gates    |

@@ -22,6 +22,7 @@
     "rust:clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml --locked --bins --lib -- -D warnings",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
+    "tauri:dev:wsl": "XWIN_CACHE_DIR=\"$HOME/.cache/shifthappens-xwin\" XWIN_ARCH=x86_64 CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUNNER='setpriv --pdeathsig TERM' tauri dev --runner cargo-xwin --target x86_64-pc-windows-msvc",
     "tauri:build": "tauri build --no-bundle",
     "tauri:installer": "tauri build --bundles nsis",
     "release:windows": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/release-windows.ps1",

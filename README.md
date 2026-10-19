@@ -73,6 +73,15 @@ npm run tauri:build -- --runner cargo-xwin --target x86_64-pc-windows-msvc
 The first build downloads Microsoft's SDK libraries. The result is
 `src-tauri/target/x86_64-pc-windows-msvc/release/shift-happens.exe`.
 
+To run the development app from WSL, close any installed copy, then run:
+
+```sh
+npm run tauri:dev:wsl
+```
+
+It builds the Windows debug executable and opens it on Windows. Frontend
+changes appear immediately; Rust changes rebuild and reopen the app.
+
 ## Checking your changes
 
 ```sh
