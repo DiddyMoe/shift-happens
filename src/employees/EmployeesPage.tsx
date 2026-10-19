@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RecordStatusTag } from "../components/RecordStatusTag";
 import { useCommandQuery } from "../hooks/useCommandQuery";
+import { useOtherScreenChanges } from "../hooks/useOtherScreenChanges";
 import { useRecordMutation } from "../hooks/useRecordMutation";
 import { formatHours } from "../lib/duration";
 import {
@@ -105,6 +106,8 @@ export function Employees() {
         searchQuery,
       ),
   );
+  // A save that finishes after you left and came back shows in the list.
+  useOtherScreenChanges(list.reload);
   const [selection, setSelection] = useState<{
     employee: Employee | null;
     draft: EmployeeData;

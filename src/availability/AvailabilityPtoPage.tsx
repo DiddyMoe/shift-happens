@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { RecordStatusTag } from "../components/RecordStatusTag";
 import { useCommandQuery } from "../hooks/useCommandQuery";
+import { useOtherScreenChanges } from "../hooks/useOtherScreenChanges";
 import type { EntryFilters } from "../lib/availabilityPto";
 import { employmentLabels, listEmployees } from "../lib/employees";
 import { LoadError, RecordFilterSelect } from "../RecordControls";
@@ -11,6 +12,8 @@ export function AvailabilityPto() {
   const employees = useCommandQuery("employees", () =>
     listEmployees("all", null, ""),
   );
+  // An employee saved elsewhere shows here with its current name and status.
+  useOtherScreenChanges(employees.reload);
   const [filters, setFilters] = useState<EntryFilters>({
     employee_id: null,
     filter: "current",

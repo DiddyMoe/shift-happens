@@ -249,6 +249,8 @@ export function desktopInvoke<T>(
       ),
     );
   const origin = window.location.hash;
+  // Lets a screen tell its own changes from ones begun before it opened.
+  const started = performance.now();
   const mutation =
     /^(create_|update_|archive_|delete_|reset_|set_|clear_|edit_|replay_|generate_|finalize_|reopen_|export_)/.test(
       command,
@@ -276,6 +278,7 @@ export function desktopInvoke<T>(
             detail: {
               command,
               origin,
+              started,
               status: result.status,
               id:
                 record.schedule_id ??

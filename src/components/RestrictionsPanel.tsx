@@ -9,6 +9,7 @@ import {
 } from "../RecordControls";
 import { RecordStatusTag } from "./RecordStatusTag";
 import { useCommandQuery } from "../hooks/useCommandQuery";
+import { useOtherScreenChanges } from "../hooks/useOtherScreenChanges";
 import { useRecordMutation } from "../hooks/useRecordMutation";
 import {
   listEmployees,
@@ -98,6 +99,12 @@ export function RestrictionsPanel<
   const targets = useCommandQuery(`targets#${sourceRefresh}`, () =>
     target.listTargets(),
   );
+  function reload() {
+    employees.reload();
+    targets.reload();
+  }
+  // An employee saved elsewhere shows here with its current name and status.
+  useOtherScreenChanges(reload);
   const mutation = useRecordMutation();
   const error = employees.error || targets.error;
   const employee = employees.data?.find((e) => e.id === employeeId);
