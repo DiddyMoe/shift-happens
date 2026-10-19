@@ -342,39 +342,6 @@ impl ValidatedCoverageSlot {
             coverage_revision: 0,
         })
     }
-    pub async fn load(
-        tx: &mut Transaction<'_, Sqlite>,
-        operational_date: LocalDate,
-        coverage_item_id: &str,
-        slot_index: i64,
-        holiday_id: Option<&str>,
-    ) -> AppResult<Self> {
-        let item = coverage::read_item(tx, coverage_item_id).await?;
-        coverage::validate_item_sources(tx, &item).await?;
-        if item.archived_at.is_some()
-            || item.data.active_status != ActiveStatus::Active
-            || !(1..=item.data.required_count).contains(&slot_index)
-        {
-            return Err(invalid());
-        }
-        let coverage =
-            coverage::read_coverage_template(tx, &item.data.coverage_template_id).await?;
-        let position = positions::read_position(tx, &item.data.shift_position_id).await?;
-        let shift = shift_templates::read_template(tx, &item.data.shift_template_id).await?;
-        let holiday = match holiday_id {
-            Some(id) => Some(holidays::read_holiday(tx, id).await?),
-            None => None,
-        };
-        Self::from_sources(
-            operational_date,
-            &item,
-            &coverage,
-            &position,
-            &shift,
-            holiday.as_ref(),
-            slot_index,
-        )
-    }
     /// In-memory creation from the same transaction's bounded source snapshot.
     /// Reuses the canonical source validators; no per-slot database reads.
     pub(crate) fn from_sources(
