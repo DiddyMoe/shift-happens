@@ -48,6 +48,14 @@ export function IssuesPanel({
   ].sort((a, b) =>
     (employeeNames.get(a) ?? a).localeCompare(employeeNames.get(b) ?? b),
   );
+  const codes =
+    result?.codes.filter((c) =>
+      result.findings.some((f) => f.code === c.code),
+    ) ?? [];
+  // A new check can drop the finding or employee a filter names. Its selector
+  // can no longer show it, so the filter clears instead of hiding everything.
+  if (result && code && !codes.some((c) => c.code === code)) setCode("");
+  if (result && employee && !employeeIds.includes(employee)) setEmployee("");
   const filtered =
     result?.findings.filter(
       (f) =>
@@ -176,15 +184,11 @@ export function IssuesPanel({
                     onChange={(e) => setCode(e.target.value)}
                   >
                     <option value="">All findings</option>
-                    {result.codes
-                      .filter((c) =>
-                        result.findings.some((f) => f.code === c.code),
-                      )
-                      .map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.code.replaceAll("_", " ")}
-                        </option>
-                      ))}
+                    {codes.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code.replaceAll("_", " ")}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 {employeeIds.length > 0 && (
