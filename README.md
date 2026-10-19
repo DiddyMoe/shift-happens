@@ -944,7 +944,10 @@ next startup, because the running database pool cannot be swapped in place:
    `restore-backups/replaced-<time>/` in the marker, moves the live database and any
    `-wal`/`-shm`/`-journal` into it (retrying for about ten seconds while Windows
    releases the files), moves the staged copy into place, verifies its hash and
-   removes the marker. Normal classification follows, so an older backup gets the
+   removes the marker with the same bounded retry. Nothing opens the installed copy
+   for writing while the marker remains: if it cannot be removed, that start stays
+   blocked, and the next start finishes the install because the file still matches
+   the staged hash. Normal classification follows, so an older backup gets the
    usual pre-migration backup and migration. An invalid marker or staged copy is set
    aside as `restore-backups/abandoned-restore-*.json` with a warning, and
    interrupted moves are resumed or rolled back. While a marker remains, startup

@@ -277,9 +277,14 @@ fn move_file(from: &Path, to: &Path, replace: bool) -> io::Result<()> {
     }
 }
 fn move_with_retry(from: &Path, to: &Path, replace: bool) -> io::Result<()> {
+    with_retry(|| move_file(from, to, replace))
+}
+/// Retries a move or removal for a bounded time. A missing source or an existing
+/// target is final rather than transient.
+fn with_retry(mut operation: impl FnMut() -> io::Result<()>) -> io::Result<()> {
     let started = Instant::now();
     loop {
-        match move_file(from, to, replace) {
+        match operation() {
             Ok(()) => return Ok(()),
             Err(error)
                 if matches!(
@@ -871,17 +876,13 @@ fn finish(
     marker: &PendingRestore,
     clock: &dyn MetadataClock,
 ) -> AppResult<(Option<RestoreReport>, Vec<AppError>)> {
-    let mut warnings = Vec::new();
-    let removed = (0..5).any(|attempt| {
-        if attempt > 0 {
-            std::thread::sleep(MOVE_RETRY_INTERVAL);
-        }
-        fs::remove_file(paths.restore_marker()).is_ok()
-    });
-    if !removed {
-        warnings.push(restore_failed(
-            "The restore was applied, but its pending note could not be removed. It will be cleared at the next start.",
-        ));
+    // The marker must be gone before any writer opens the installed copy. A later
+    // start recognizes an unfinished install only while the main file still
+    // matches the staged digest, so this start stays blocked instead.
+    match with_retry(|| fs::remove_file(paths.restore_marker())) {
+        Ok(()) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(_) => return Err(startup_blocked()),
     }
     cleanup_staging(paths);
     Ok((
@@ -896,7 +897,7 @@ fn finish(
             migrated: false,
             completed_at: clock_timestamp(clock).ok(),
         }),
-        warnings,
+        Vec::new(),
     ))
 }
 
