@@ -422,7 +422,10 @@ active items and reactivation also check current source activity and valid offse
 Archived records have no reactivation path. Position exclusions use revision-aware
 CRUD/archive, active-source checks and partial duplicate prevention. They are linked
 from Employees and managed on Positions and Coverage; they remain historical when
-sources retire. Generation, editing, and validation apply the active exclusions.
+sources retire. As with shift template exclusions, only a moved or reactivated link
+rechecks active sources, so a retained exclusion can still have its notes updated,
+be deactivated or be archived after its employee or position retires. Generation,
+editing, and validation apply the active exclusions.
 
 ## Availability and PTO
 
