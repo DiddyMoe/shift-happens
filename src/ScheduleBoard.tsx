@@ -185,13 +185,17 @@ export function ScheduleBoard({
       weekStart === undefined || weekStart === null
         ? localWeekday(start.value)
         : weekdayNumbers[weekStart];
+    // Weeks begin on the workweek start, up to six days before the schedule.
+    // Near 0001-01-01 those days may not exist, so weeks are counted as
+    // ordinals and only real dates are shown.
     const back = (localWeekday(start.value) - first + 7) % 7;
-    const origin = addLocalDays(start.value, -back);
-    if (!origin.ok) return null;
-    const span = localDateOrdinal(end.value) - localDateOrdinal(origin.value);
+    const origin = localDateOrdinal(start.value) - back;
+    const span = localDateOrdinal(end.value) - origin;
     if (span < 0) return null;
     return {
-      origin: origin.value,
+      origin,
+      back,
+      startDay: start.value,
       weeks: Math.floor(span / 7) + 1,
       start: startDate,
       end: endDate,
@@ -202,8 +206,7 @@ export function ScheduleBoard({
     if (!range || !date) return null;
     const parsed = parseLocalDate(date);
     if (!parsed.ok) return null;
-    const offset =
-      localDateOrdinal(parsed.value) - localDateOrdinal(range.origin);
+    const offset = localDateOrdinal(parsed.value) - range.origin;
     const week = Math.floor(offset / 7);
     return week >= 0 && week < range.weeks ? week : null;
   };
@@ -227,7 +230,11 @@ export function ScheduleBoard({
     : 0;
   const moveWeek = (step: number) => {
     if (!range) return;
-    const value = addLocalDays(range.origin, (shownWeek + step) * 7);
+    // The first week's anchor is the schedule's first date.
+    const value = addLocalDays(
+      range.startDay,
+      Math.max((shownWeek + step) * 7 - range.back, 0),
+    );
     if (value.ok) setAnchor(formatLocalDate(value.value));
   };
 
@@ -235,7 +242,10 @@ export function ScheduleBoard({
     if (!range) return [];
     const result: { date: string; weekday: number; inRange: boolean }[] = [];
     for (let d = 0; d < 7; d += 1) {
-      const value = addLocalDays(range.origin, shownWeek * 7 + d);
+      const value = addLocalDays(
+        range.startDay,
+        shownWeek * 7 + d - range.back,
+      );
       if (!value.ok) continue;
       const date = formatLocalDate(value.value);
       result.push({
