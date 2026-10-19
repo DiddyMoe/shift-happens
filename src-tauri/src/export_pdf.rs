@@ -266,11 +266,8 @@ fn wrapped(font: &PdfFont, text: &str, width: f32, size: f32) -> Vec<String> {
     let mut line = String::new();
     let mut measured = 0.;
     for c in text.nfc().flat_map(|c| {
-        if c == '\t' {
-            "    ".chars().collect::<Vec<_>>()
-        } else {
-            vec![c]
-        }
+        let (c, count) = if c == '\t' { (' ', 4) } else { (c, 1) };
+        std::iter::repeat_n(c, count)
     }) {
         if c == '\n' {
             lines.push(std::mem::take(&mut line));
