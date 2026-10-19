@@ -3,14 +3,14 @@ use crate::{
     availability_pto::{AvailabilityEntry, PtoEntry},
     availability_rules::{AvailabilityPtoIndex, RuleCode},
     employee_restrictions::{EmployeeRestriction, RestrictionIndex},
-    employees::{self, ActiveStatus, Employee, RulePeriod},
+    employees::{ActiveStatus, Employee, RulePeriod},
     error::{AppError, AppResult, DIAGNOSTIC_LIMIT, ErrorCode},
     generation::{self, ExclusionReason, Workload},
     generation_inputs::{
         self, PlannedSlot, Policy, RuleInputs, add, arithmetic_error, json_ids, load_counted,
     },
     generation_snapshot::ASSIGNMENT_LIMIT,
-    holidays::HolidaySet,
+    holidays::{self, HolidaySet},
     local_values::{
         ANALYSIS_EMPLOYEE_LIMIT, ExpandedIntervalBudget, LocalDate, LocalDateTime, LocalInterval,
         SourceRowBudget, input_limit_error,
@@ -24,7 +24,7 @@ use crate::{
 };
 use serde::Serialize;
 use serde_json::{Value, json};
-use sqlx::{QueryBuilder, Sqlite, Transaction};
+use sqlx::{FromRow, QueryBuilder, Sqlite, Transaction};
 use std::collections::BTreeMap;
 
 pub(crate) fn editor_error(mut e: AppError) -> AppError {
@@ -204,19 +204,25 @@ pub(crate) async fn load(
     let mut query = QueryBuilder::<Sqlite>::new("SELECT ");
     query
         .push(generation_inputs::EMPLOYEE_COLUMNS)
-        .push(" FROM employees WHERE ")
+        .push(",")
+        .push(generation_inputs::numeric_valid("employees"))
+        .push(" AS numeric_valid FROM employees WHERE ")
         .push(employee_filter)
         .push(" ORDER BY id");
-    let employees = query
-        .build_query_as::<Employee>()
+    let employee_rows = query
+        .build()
         .bind(&schedule.id)
         .fetch_all(&mut **tx)
         .await?;
+    let employees = employee_rows
+        .iter()
+        .map(Employee::from_row)
+        .collect::<Result<Vec<_>, _>>()?;
     // Corrupt active rule data cannot produce an eligibility claim. Inactive sources
     // can be safely removed and do not contribute source-minimum warnings.
-    for e in &employees {
+    for (e, row) in employees.iter().zip(&employee_rows) {
         if active(e) {
-            employees::verify_employee(e)?;
+            generation_inputs::verify_employee_row(e, row)?;
         }
     }
     let settings = settings::read_in_transaction(tx).await?;
@@ -341,14 +347,10 @@ impl Sources {
             )?;
             let holiday_group = match row.structure.holiday_set_snapshot {
                 None | Some(HolidaySet::None) => None,
-                Some(set) => {
-                    let even = (date.year() - policy.holiday_year).rem_euclid(2) == 0;
-                    Some(if (set == HolidaySet::A) == even {
-                        employees::HolidayGroup::A
-                    } else {
-                        employees::HolidayGroup::B
-                    })
-                }
+                // Both years are already validated (LocalDate, settings), so this
+                // cannot fail; it only reuses the canonical parity mapping.
+                Some(set) => holidays::rotation_for_year(date.year(), policy.holiday_year)?
+                    .required_group(set),
             };
             slots.push(PlannedSlot {
                 slot: ValidatedCoverageSlot::from_assignment(row, schedule)?,

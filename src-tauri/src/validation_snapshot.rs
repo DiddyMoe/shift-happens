@@ -266,8 +266,9 @@ pub async fn load_validation_snapshot(
         "first_name,last_name,display_name",
         "'Employee' AS first_name,'Record' AS last_name,'Employee Record' AS display_name",
     );
+    let numeric = generation_inputs::numeric_valid("employees");
     let employee_sql = format!(
-        "SELECT {columns},typeof(can_work_weekends)='integer' AND can_work_weekends IN (0,1) AND typeof(can_work_holidays)='integer' AND can_work_holidays IN (0,1) AND typeof(can_work_night_shift)='integer' AND can_work_night_shift IN (0,1) AND typeof(can_work_ortho_or)='integer' AND can_work_ortho_or IN (0,1) AND typeof(requires_explicit_availability)='integer' AND requires_explicit_availability IN (0,1) AND (minimum_paid_minutes IS NULL OR typeof(minimum_paid_minutes)='integer') AND (minimum_assignment_count IS NULL OR typeof(minimum_assignment_count)='integer') AND (maximum_paid_minutes IS NULL OR typeof(maximum_paid_minutes)='integer') AS numeric_valid FROM employees WHERE {employee_filter} ORDER BY id"
+        "SELECT {columns},{numeric} AS numeric_valid FROM employees WHERE {employee_filter} ORDER BY id"
     );
     for row in sqlx::QueryBuilder::<Sqlite>::new("")
         .push(&employee_sql)
@@ -588,11 +589,7 @@ async fn load_rows(
         .await?;
     budget.reserve(count)?;
     *reads += 2;
-    let numeric = if matches!(table, "availability_entries" | "pto_entries") {
-        "typeof(is_full_day)='integer' AND is_full_day IN (0,1)"
-    } else {
-        "1"
-    };
+    let numeric = generation_inputs::numeric_valid(table);
     let material_columns: &[&str] = match table {
         "employee_restrictions" => &[
             "id",

@@ -376,14 +376,17 @@ pub async fn read_employee(tx: &mut Transaction<'_, Sqlite>, id: &str) -> AppRes
     verify_employee(&employee)?;
     Ok(employee)
 }
+pub(crate) fn stored_employee_error() -> AppError {
+    AppError::new(
+        ErrorCode::ConfigurationInvalid,
+        "The stored employee requires investigation; it has not been changed.",
+    )
+}
 pub(crate) fn verify_employee(employee: &Employee) -> AppResult<()> {
     if employee.data.clone().normalized()? != employee.data
         || (employee.archived_at.is_some() && employee.data.active_status != ActiveStatus::Inactive)
     {
-        return Err(AppError::new(
-            ErrorCode::ConfigurationInvalid,
-            "The stored employee requires investigation; it has not been changed.",
-        ));
+        return Err(stored_employee_error());
     }
     verify_metadata(
         &employee.created_at,

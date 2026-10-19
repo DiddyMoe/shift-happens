@@ -24,7 +24,7 @@ use crate::{
     template_restrictions::TemplateRestriction,
 };
 use serde::Serialize;
-use sqlx::{FromRow, QueryBuilder, Sqlite, Transaction, sqlite::SqliteRow};
+use sqlx::{FromRow, QueryBuilder, Row, Sqlite, Transaction, sqlite::SqliteRow};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn generation_error(mut error: AppError) -> AppError {
@@ -137,6 +137,28 @@ pub(crate) const PTO_FILTER: &str = "active_status='active' AND archived_at IS N
 pub(crate) const TEMPLATE_BLOCK_FILTER: &str = "active_status='active' AND archived_at IS NULL AND shift_template_id IN (SELECT value FROM json_each(?3)) AND shift_template_id IN (SELECT id FROM shift_templates WHERE active_status='active' AND archived_at IS NULL) AND employee_id IN (SELECT id FROM employees WHERE active_status='active' AND archived_at IS NULL)";
 pub(crate) const POSITION_BLOCK_FILTER: &str = "active_status='active' AND archived_at IS NULL AND shift_position_id IN (SELECT value FROM json_each(?3)) AND shift_position_id IN (SELECT id FROM shift_positions WHERE active_status='active' AND archived_at IS NULL) AND employee_id IN (SELECT id FROM employees WHERE active_status='active' AND archived_at IS NULL)";
 
+/// Raw numeric shapes a typed read cannot see: sqlx decodes any SQLite integer as
+/// `bool` with `!= 0`, so an externally stored 2 would read as `true`. Generation and
+/// the editor reject a row they rely on that fails this; validation classifies it.
+pub(crate) fn numeric_valid(table: &str) -> &'static str {
+    match table {
+        "employees" => {
+            "typeof(can_work_weekends)='integer' AND can_work_weekends IN (0,1) AND typeof(can_work_holidays)='integer' AND can_work_holidays IN (0,1) AND typeof(can_work_night_shift)='integer' AND can_work_night_shift IN (0,1) AND typeof(can_work_ortho_or)='integer' AND can_work_ortho_or IN (0,1) AND typeof(requires_explicit_availability)='integer' AND requires_explicit_availability IN (0,1) AND (minimum_paid_minutes IS NULL OR typeof(minimum_paid_minutes)='integer') AND (minimum_assignment_count IS NULL OR typeof(minimum_assignment_count)='integer') AND (maximum_paid_minutes IS NULL OR typeof(maximum_paid_minutes)='integer')"
+        }
+        "availability_entries" | "pto_entries" => {
+            "typeof(is_full_day)='integer' AND is_full_day IN (0,1)"
+        }
+        _ => "1",
+    }
+}
+/// `verify_employee` for a row that also selected `numeric_valid("employees")`
+/// AS numeric_valid.
+pub(crate) fn verify_employee_row(employee: &Employee, row: &SqliteRow) -> AppResult<()> {
+    if row.try_get::<i64, _>("numeric_valid").ok() != Some(1) {
+        return Err(employees::stored_employee_error());
+    }
+    employees::verify_employee(employee)
+}
 pub(crate) fn json_ids<'a>(ids: impl IntoIterator<Item = &'a str>) -> AppResult<String> {
     serde_json::to_string(&ids.into_iter().collect::<BTreeSet<_>>()).map_err(|_| arithmetic_error())
 }
@@ -181,16 +203,24 @@ where
     let mut query = QueryBuilder::<Sqlite>::new("SELECT ");
     query
         .push(columns)
-        .push(" FROM ")
+        .push(",")
+        .push(numeric_valid(table))
+        .push(" AS numeric_valid FROM ")
         .push(table)
         .push(" WHERE ")
         .push(filter)
         .push(" AND ?1<=?2 AND ?3 IS NOT NULL ORDER BY id");
     query
-        .build_query_as::<T>()
+        .build()
         .bind(first)
         .bind(last)
         .bind(ids)
+        .try_map(|row: SqliteRow| {
+            if row.try_get::<i64, _>("numeric_valid")? != 1 {
+                return Err(sqlx::Error::Decode("noncanonical stored number".into()));
+            }
+            T::from_row(&row)
+        })
         .fetch_all(&mut **tx)
         .await
         .map_err(|_| {
@@ -283,13 +313,16 @@ pub(crate) async fn preflight(
     let mut employee_query = QueryBuilder::<Sqlite>::new("SELECT ");
     employee_query
         .push(EMPLOYEE_COLUMNS)
-        .push(" FROM employees WHERE active_status='active' AND archived_at IS NULL ORDER BY id");
-    let employees = employee_query
-        .build_query_as::<Employee>()
-        .fetch_all(&mut **tx)
-        .await?;
-    for employee in &employees {
-        employees::verify_employee(employee)?;
+        .push(",")
+        .push(numeric_valid("employees"))
+        .push(" AS numeric_valid FROM employees WHERE active_status='active' AND archived_at IS NULL ORDER BY id");
+    let rows = employee_query.build().fetch_all(&mut **tx).await?;
+    let employees = rows
+        .iter()
+        .map(Employee::from_row)
+        .collect::<Result<Vec<_>, _>>()?;
+    for (employee, row) in employees.iter().zip(&rows) {
+        verify_employee_row(employee, row)?;
     }
     let anchor_required = employees.iter().any(|e| {
         e.data.minimum_period == RulePeriod::TwoWeek || e.data.maximum_period == RulePeriod::TwoWeek
