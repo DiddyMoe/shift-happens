@@ -60,7 +60,12 @@ a static treatment and the result is always stated in text.
 
 Run `npm run notices` after changing dependencies. It regenerates
 `src/generated/third-party-notices.txt` from the Windows dependency graph and
-the production npm packages; About loads it on demand.
+the production npm packages; About loads it on demand. License files are read
+from each package, including REUSE-style `LICENSES/` folders. A few published
+crates omit their repository's license file; for those exact versions,
+`scripts/notice-supplements/` holds reviewed upstream copies pinned to the commit
+each was published from. The script names any package left without license text,
+so a dependency update that needs a new supplement is visible.
 
 ## Stack and prerequisites
 

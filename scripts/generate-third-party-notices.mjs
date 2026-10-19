@@ -13,14 +13,61 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 // About loads this file on demand as its own bundled chunk.
 const output = join(root, "src", "generated", "third-party-notices.txt");
 const LICENSE_FILE = /^(licen[cs]e|copying|notice)/i;
+// Some published packages omit the license files their repository carries.
+// These are reviewed upstream copies, each kept under scripts/notice-supplements
+// at its https://raw.githubusercontent.com/ path, pinned to the commit that exact
+// version was published from (its .cargo_vcs_info.json). A new version needs a
+// new review.
+const supplements = join(root, "scripts", "notice-supplements");
+const SUPPLEMENTS = new Map(
+  Object.entries({
+    "alloc-stdlib 0.2.4": [
+      "dropbox/rust-alloc-no-stdlib/ae42d22078b98549e987d2f03d12df7b984fde47/LICENSE",
+    ],
+    "alloc-stdlib 0.3.0": [
+      "dropbox/rust-alloc-no-stdlib/0a81fd6928ea3b33c8cd484aa4575d50ffb98012/LICENSE",
+    ],
+    "defmt-parser 1.0.0": [
+      "knurling-rs/defmt/4a8cdb44891ed57b8ff5a023b6bec7137c48708f/LICENSE-APACHE",
+      "knurling-rs/defmt/4a8cdb44891ed57b8ff5a023b6bec7137c48708f/LICENSE-MIT",
+    ],
+    "webview2-com 0.39.1": [
+      "wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE",
+    ],
+    "webview2-com-sys 0.39.1": [
+      "wravery/webview2-rs/edc2caf886175ccaebe86078c9cfe1ae2a187328/LICENSE",
+    ],
+    "webview2-com-macros 0.8.1": [
+      "wravery/webview2-rs/dffa41a8a46d3f5565eefbff2de57d38d399f158/LICENSE",
+    ],
+  }).map(([key, paths]) => [key, paths.map((path) => join(supplements, path))]),
+);
 
+const readText = (path) =>
+  readFileSync(path, "utf8").replace(/\r\n/g, "\n").trim();
+
+// A matching directory is a REUSE-style LICENSES folder of license files.
 function licenseTexts(directory) {
   return readdirSync(directory)
     .filter((name) => LICENSE_FILE.test(name))
     .map((name) => join(directory, name))
-    .filter((path) => statSync(path).isFile())
+    .flatMap((path) =>
+      statSync(path).isDirectory()
+        ? readdirSync(path)
+            .map((name) => join(path, name))
+            .filter((file) => statSync(file).isFile())
+        : statSync(path).isFile()
+          ? [path]
+          : [],
+    )
     .sort()
-    .map((path) => readFileSync(path, "utf8").replace(/\r\n/g, "\n").trim());
+    .map(readText);
+}
+
+function packageTexts(name, version, directory) {
+  const shipped = licenseTexts(directory);
+  if (shipped.length) return shipped;
+  return (SUPPLEMENTS.get(`${name} ${version}`) ?? []).map(readText);
 }
 
 function rustPackages() {
@@ -60,7 +107,7 @@ function rustPackages() {
       version: p.version,
       license: p.license ?? "See package",
       source: p.repository ?? "",
-      texts: licenseTexts(dirname(p.manifest_path)),
+      texts: packageTexts(p.name, p.version, dirname(p.manifest_path)),
     };
   });
 }
@@ -94,7 +141,9 @@ const packages = [...npmPackages(), ...rustPackages()].sort(
   (a, b) => a.name.localeCompare(b.name) || a.version.localeCompare(b.version),
 );
 const groups = new Map();
+const unlicensed = [];
 for (const p of packages) {
+  if (!p.texts.length) unlicensed.push(`${p.name} ${p.version}`);
   const text = p.texts.length
     ? p.texts.join("\n\n")
     : `Licensed under ${p.license}. The package ships no separate license file${p.source ? `; see ${p.source}` : ""}.`;
@@ -114,3 +163,7 @@ writeFileSync(
 console.log(
   `Wrote ${output}: ${packages.length} packages, ${groups.size} distinct license texts.`,
 );
+if (unlicensed.length)
+  console.warn(
+    `No license file found, so only the declared license is named, for: ${unlicensed.join(", ")}. Review the upstream repository and add a supplement if it has one.`,
+  );
