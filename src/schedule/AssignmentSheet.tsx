@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { RecordFeedback } from "../RecordControls";
+import { LoadError, RecordFeedback } from "../RecordControls";
 import { editorFindingLabels } from "../lib/editorText";
 import { formatHours } from "../lib/duration";
 import { factEntries } from "../lib/findings";
@@ -295,9 +295,7 @@ export function AssignmentSheet({
               </p>
             )}
             {candidateError && (
-              <p className="notice notice-error" role="alert">
-                {candidateError}
-              </p>
+              <LoadError message={candidateError} onRetry={onReload} />
             )}
             {candidateRead && (
               <>

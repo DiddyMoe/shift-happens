@@ -143,7 +143,14 @@ function Preview({ snapshot }: { snapshot: ExportSnapshot }) {
     </article>
   );
 }
-function Failure({ error }: { error: AppError }) {
+function Failure({
+  error,
+  onRetry,
+}: {
+  error: AppError;
+  /** Offered for a read that can simply run again. */
+  onRetry?: () => void;
+}) {
   const context = error.context;
   const detail = context.diagnostics;
   const alternative =
@@ -197,6 +204,11 @@ function Failure({ error }: { error: AppError }) {
           <span className="literal">{w.context.destination_path}</span>
         </p>
       ))}
+      {onRetry && (
+        <button type="button" className="btn btn-sm" onClick={onRetry}>
+          Try again
+        </button>
+      )}
     </div>
   );
 }
@@ -542,6 +554,12 @@ function PrintDialog({
       alive = false;
     };
   }, [schedule.id, attempt]);
+  function retry() {
+    setLoading(true);
+    setFailure(null);
+    setNotice(null);
+    setAttempt((n) => n + 1);
+  }
   return (
     <OutputDialog
       className="print-dialog"
@@ -574,19 +592,11 @@ function PrintDialog({
             Preparing a read-only snapshot of this schedule…
           </p>
         )}
-        {failure && <Failure error={failure} />}
+        {failure && <Failure error={failure} onRetry={retry} />}
         {notice && (
           <div className="notice notice-error export-controls" role="alert">
             <p>{notice}</p>
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => {
-                setLoading(true);
-                setNotice(null);
-                setAttempt((n) => n + 1);
-              }}
-            >
+            <button type="button" className="btn btn-sm" onClick={retry}>
               Try again
             </button>
           </div>
