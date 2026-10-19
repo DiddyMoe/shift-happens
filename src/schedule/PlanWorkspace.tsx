@@ -121,7 +121,12 @@ export function PlanWorkspace({
     null,
   );
   const [candidateId, setCandidateId] = useState("");
-  const [notes, setNotes] = useState("");
+  // The open shift's unsaved note. It survives that shift reloading after
+  // other actions; choosing a shift starts again from its saved note.
+  const [noteDraft, setNoteDraft] = useState<{
+    id: string;
+    text: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [candidateLoading, setCandidateLoading] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -233,6 +238,13 @@ export function PlanWorkspace({
     candidateSnapshot?.schedule_revision === detail?.schedule.revision
       ? candidateSnapshot
       : null;
+  const savedNotes = row?.notes ?? "";
+  // A draft that matches the saved note is no longer unsaved, so a later
+  // change to the saved note (for example Undo) shows.
+  if (noteDraft && noteDraft.id === row?.id && noteDraft.text === savedNotes)
+    setNoteDraft(null);
+  const notes =
+    noteDraft && noteDraft.id === row?.id ? noteDraft.text : savedNotes;
   useEffect(() => {
     let canceled = false;
     if (!row || !detail) return;
@@ -242,7 +254,6 @@ export function PlanWorkspace({
       setCandidateRead(null);
       setCandidateId("");
       setCandidateError("");
-      setNotes(selectedRow.notes ?? "");
       if (selectedSchedule.status !== "draft" || selectedSchedule.archived_at)
         return;
       setCandidateLoading(true);
@@ -317,6 +328,12 @@ export function PlanWorkspace({
           stale: false,
           failed: false,
         });
+        // Show the note as saved until the reload confirms it.
+        if ("action" in request && request.action.kind === "note")
+          setNoteDraft({
+            id: result.data.assignment.id,
+            text: result.data.assignment.notes ?? "",
+          });
         setSelectedId(result.data.assignment.id);
         setRefresh((v) => v + 1);
         return;
@@ -598,7 +615,7 @@ export function PlanWorkspace({
     if (!target) return;
     setIssuesOpen(false);
     setReturnTo(focusKey);
-    setNotes(target.notes ?? "");
+    setNoteDraft(null);
     setSelectedId(target.id);
     setSheetFor(target.id);
   }
@@ -892,7 +909,7 @@ export function PlanWorkspace({
               label={`${detail.schedule.name} assignments`}
               onSelect={(item) => {
                 setReturnTo(null);
-                setNotes(item.notes ?? "");
+                setNoteDraft(null);
                 setSelectedId(item.id);
                 setSheetFor(item.id);
               }}
@@ -933,7 +950,7 @@ export function PlanWorkspace({
             onCandidateChange={setCandidateId}
             candidate={candidate}
             notes={notes}
-            onNotesChange={setNotes}
+            onNotesChange={(text) => setNoteDraft({ id: row.id, text })}
             feedback={feedback}
             onEdit={edit}
             onReload={reload}
