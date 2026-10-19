@@ -1,8 +1,8 @@
 import { useId } from "react";
 import {
-  colorStyle,
   defaultMagnetColor,
   isShiftColor,
+  magnetStyle,
 } from "../lib/magnetColor";
 
 /** The template's board color, typed or picked, beside a magnet preview. */
@@ -49,7 +49,7 @@ export function BoardColorField({
       {/* Visual only: the same values are in the fields above. */}
       <div className="tpl-color-preview" aria-hidden="true">
         <span className="fine-print">Preview on the board</span>
-        <div className="magnet" style={colorStyle("--magnet", color)}>
+        <div className="magnet" style={magnetStyle(color)}>
           <span className="magnet-title">
             <span>{title}</span>
           </span>

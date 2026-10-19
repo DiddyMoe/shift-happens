@@ -8,7 +8,7 @@ import {
   localWeekday,
   parseLocalDate,
 } from "./lib/localDate";
-import { colorStyle } from "./lib/magnetColor";
+import { magnetStyle } from "./lib/magnetColor";
 import type { Assignment, Schedule } from "./lib/schedules";
 
 export type BoardView = "employees" | "positions";
@@ -121,9 +121,7 @@ export function Magnet({
     </>
   );
   const className = `magnet${open ? " is-open" : ""}`;
-  const style = open
-    ? undefined
-    : colorStyle("--magnet", assignment.shift_color_snapshot);
+  const style = open ? undefined : magnetStyle(assignment.shift_color_snapshot);
   if (!onSelect)
     return (
       <span className={className} style={style}>
