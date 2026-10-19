@@ -35,7 +35,9 @@ pub fn write(snapshot: &ExportSnapshot, temporary: &OwnedTemporary) -> AppResult
     workbook
         .set_tempdir(temporary.path.parent().ok_or_else(generation_error)?)
         .map_err(|_| generation_error())?;
-    let worksheet = workbook.add_worksheet_with_constant_memory();
+    let worksheet = workbook
+        .add_worksheet_with_constant_memory()
+        .map_err(|_| generation_error())?;
     worksheet
         .set_name("Schedule")
         .map_err(|_| generation_error())?;

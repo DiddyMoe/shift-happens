@@ -984,8 +984,8 @@ replacements and duplicated display fields before retaining rows. Unsupported
 legacy controls become visible `[U+XXXX]` text with bounded diagnostics. Unknown
 assigned employees remain assigned; only true open rows display `Open Shift`.
 
-Dependencies: [rust_xlsxwriter 0.99.1](https://docs.rs/rust_xlsxwriter/0.99.1/)
-with only `constant_memory`; [calamine 0.36.1](https://docs.rs/calamine/0.36.1/)
+Dependencies: [rust_xlsxwriter 0.100.0](https://docs.rs/rust_xlsxwriter/0.100.0/)
+with only `constant_memory`; [calamine 0.37.0](https://docs.rs/calamine/0.37.0/)
 without optional features; [pdf-writer 0.15.0](https://docs.rs/pdf-writer/0.15.0/);
 [lopdf 0.45.0](https://docs.rs/lopdf/0.45.0/) without optional features;
 [skrifa 0.48.0](https://docs.rs/skrifa/0.48.0/) with only `std`; and

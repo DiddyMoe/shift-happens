@@ -25,10 +25,10 @@ uuid = { version = "=1.27.0", features = ["v4"] }
 sha2 = { version = "=0.11.0", default-features = false }
 libsqlite3-sys = { version = "=0.37.0", default-features = false }
 tauri-plugin-dialog = "=2.8.1"
-tauri-plugin-single-instance = "=2.5.2"
+tauri-plugin-single-instance = "=2.5.4"
 futures-util = { version = "=0.3.34", default-features = false, features = ["std"] }
-rust_xlsxwriter = { version = "=0.99.1", default-features = false, features = ["constant_memory"] }
-calamine = { version = "=0.36.1", default-features = false }
+rust_xlsxwriter = { version = "=0.100.0", default-features = false, features = ["constant_memory"] }
+calamine = { version = "=0.37.0", default-features = false }
 pdf-writer = "=0.15.0"
 lopdf = { version = "=0.45.0", default-features = false }
 skrifa = { version = "=0.48.0", default-features = false, features = ["std"] }
