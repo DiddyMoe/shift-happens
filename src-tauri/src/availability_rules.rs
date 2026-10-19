@@ -70,10 +70,16 @@ struct SourceInterval {
     kind: SourceKind,
     interval: LocalInterval,
 }
+/// `sources` keep complete provenance for material and diagnostics. The coalesced
+/// per-kind unions answer every rank fact with one binary search per candidate.
 #[derive(Default, Debug)]
 struct EmployeeIntervals {
     sources: Vec<SourceInterval>,
     available_union: Vec<LocalInterval>,
+    preferred_union: Vec<LocalInterval>,
+    hard_union: Vec<LocalInterval>,
+    approved_pto_union: Vec<LocalInterval>,
+    requested_pto_union: Vec<LocalInterval>,
 }
 /// Immutable index reused for all candidates in the merged explicit windows.
 #[derive(Debug)]
@@ -202,13 +208,21 @@ impl AvailabilityPtoIndex {
             .partition_point(|s| s.interval.start().date() <= last);
         Ok(&target.sources[begin..end])
     }
+    /// Equal to scanning `relevant_sources` for every fact. Every source interval
+    /// lasts at most one civil day (`EntryShape::on_date`), so a source overlapping
+    /// the candidate, or ending after its first midnight and starting by its last
+    /// touched day, always lies in that lookback window. A positive-length interval
+    /// overlaps a coalesced union exactly when it overlaps one of the union's members.
     pub fn assess(
         &self,
         employee: &str,
         candidate: LocalInterval,
     ) -> AppResult<AvailabilityAssessment> {
-        let relevant = self.relevant_sources(employee, candidate)?;
-        let first_midnight = midnight(candidate.start().date())?;
+        // Same checks, day arithmetic and errors as `relevant_sources`.
+        self.windows.require_contains(candidate)?;
+        let (first, last) = touched_days(candidate)?;
+        midnight(first.subtract_days(1)?)?;
+        let first_midnight = midnight(first)?;
         let mut result = AvailabilityAssessment {
             facts: AvailabilityFacts {
                 has_available_overlap: false,
@@ -221,31 +235,26 @@ impl AvailabilityPtoIndex {
             hard_block: false,
             requested_pto: false,
         };
-        for source in relevant {
-            let overlap = source.interval.overlaps(candidate);
-            match source.kind {
-                SourceKind::Availability(AvailabilityType::Available) => {
-                    result.facts.has_available_overlap |= overlap
-                }
-                SourceKind::Availability(AvailabilityType::Preferred) => {
-                    result.facts.has_relevant_preferred_entries |=
-                        source.interval.end() > first_midnight;
-                    result.facts.has_preferred_overlap |= overlap;
-                }
-                SourceKind::Availability(
-                    AvailabilityType::HardBlock | AvailabilityType::Unavailable,
-                ) => result.hard_block |= overlap,
-                SourceKind::Pto(PtoStatus::Approved) => result.approved_pto |= overlap,
-                SourceKind::Pto(PtoStatus::Requested) => result.requested_pto |= overlap,
-                SourceKind::Pto(_) => {}
-            }
-        }
-        result.facts.has_full_available_coverage = self.employees.get(employee).is_some_and(|t| {
-            let end = t
-                .available_union
-                .partition_point(|i| i.start() <= candidate.start());
-            end > 0 && t.available_union[end - 1].end() >= candidate.end()
-        });
+        let Some(t) = self.employees.get(employee) else {
+            return Ok(result);
+        };
+        let overlaps_any = |union: &[LocalInterval]| {
+            first_ending_after(union, candidate.start())
+                .is_some_and(|u| u.start() < candidate.end())
+        };
+        result.facts.has_available_overlap = overlaps_any(&t.available_union);
+        result.facts.has_relevant_preferred_entries =
+            first_ending_after(&t.preferred_union, first_midnight)
+                .is_some_and(|u| u.start().date() <= last);
+        result.facts.has_preferred_overlap = overlaps_any(&t.preferred_union);
+        result.hard_block = overlaps_any(&t.hard_union);
+        result.approved_pto = overlaps_any(&t.approved_pto_union);
+        result.requested_pto = overlaps_any(&t.requested_pto_union);
+        let end = t
+            .available_union
+            .partition_point(|i| i.start() <= candidate.start());
+        result.facts.has_full_available_coverage =
+            end > 0 && t.available_union[end - 1].end() >= candidate.end();
         Ok(result)
     }
     /// Stream complete canonical material into the shared identity, with bounded
@@ -379,14 +388,26 @@ impl AvailabilityPtoIndex {
                     &b.id,
                 ))
             });
-            target.available_union = coalesce(
-                target
-                    .sources
-                    .iter()
-                    .filter(|s| s.kind == SourceKind::Availability(AvailabilityType::Available))
-                    .map(|s| s.interval)
-                    .collect(),
-            )?;
+            let union = |kinds: &[SourceKind]| {
+                coalesce(
+                    target
+                        .sources
+                        .iter()
+                        .filter(|s| kinds.contains(&s.kind))
+                        .map(|s| s.interval)
+                        .collect(),
+                )
+            };
+            target.available_union =
+                union(&[SourceKind::Availability(AvailabilityType::Available)])?;
+            target.preferred_union =
+                union(&[SourceKind::Availability(AvailabilityType::Preferred)])?;
+            target.hard_union = union(&[
+                SourceKind::Availability(AvailabilityType::HardBlock),
+                SourceKind::Availability(AvailabilityType::Unavailable),
+            ])?;
+            target.approved_pto_union = union(&[SourceKind::Pto(PtoStatus::Approved)])?;
+            target.requested_pto_union = union(&[SourceKind::Pto(PtoStatus::Requested)])?;
         }
         Ok(Self { windows, employees })
     }
@@ -498,6 +519,13 @@ impl AvailabilityPtoIndex {
             omitted_diagnostic_count: 0,
         })
     }
+}
+/// First coalesced interval ending after `instant`. Coalesced unions are sorted,
+/// disjoint and non-touching, so their ends strictly increase.
+fn first_ending_after(union: &[LocalInterval], instant: LocalDateTime) -> Option<LocalInterval> {
+    union
+        .get(union.partition_point(|u| u.end() <= instant))
+        .copied()
 }
 fn duplicate_source() -> AppError {
     AppError::new(

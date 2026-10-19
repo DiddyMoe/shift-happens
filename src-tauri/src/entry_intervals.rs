@@ -167,10 +167,15 @@ impl EvaluationWindows {
         &self.source_days
     }
     pub fn require_contains(&self, candidate: LocalInterval) -> AppResult<()> {
-        if self
+        // `actual` is coalesced: sorted, disjoint and non-touching. Only the last window
+        // starting at or before the candidate can contain it; earlier ones end before
+        // that window starts.
+        let after = self
             .actual
-            .iter()
-            .any(|w| w.start() <= candidate.start() && candidate.end() <= w.end())
+            .partition_point(|w| w.start() <= candidate.start());
+        if after
+            .checked_sub(1)
+            .is_some_and(|i| candidate.end() <= self.actual[i].end())
         {
             Ok(())
         } else {
