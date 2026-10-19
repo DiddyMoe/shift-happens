@@ -287,7 +287,8 @@ pub(crate) async fn preflight(
     expected_current: Option<i64>,
 ) -> AppResult<Inputs> {
     let settings = settings::read_in_transaction(tx).await?;
-    let mut sql_reads = settings::REGISTRY.len() as i64;
+    // `read_in_transaction` reads every registry key with one SELECT.
+    let mut sql_reads: i64 = 1;
     let policy = Policy::from_settings(&settings)?;
     let current_revision = settings
         .iter()
