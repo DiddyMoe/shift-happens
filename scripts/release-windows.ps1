@@ -246,7 +246,8 @@ try {
     $release = @('--release', '--features', 'tauri/custom-protocol', '--bins', '--lib')
     if ($env:CARGO_TARGET_DIR) { throw 'Unset CARGO_TARGET_DIR so artifact paths are unambiguous.' }
     # The manager confirmed the calendar/checkmark assets are project-owned;
-    # their source/ownership and bundled font/template licenses are in README.
+    # their source/ownership and bundled font/template licenses are in
+    # docs/technical-reference.md.
 
     # Resource reads fail for missing/invalid configured assets. The native
     # Tauri compiler/bundler validates the effective config, ACL and resources.
