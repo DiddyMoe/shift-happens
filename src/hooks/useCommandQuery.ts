@@ -5,7 +5,8 @@ import { errorText } from "../lib/recordFeedback";
 /**
  * Loads one read command for `key` (null skips loading). A new key or a
  * reload() runs it again; the previous data stays visible until the new
- * result arrives, so reloading never flashes an empty screen.
+ * result arrives, so reloading never flashes an empty screen. A failed load
+ * keeps that data too, beside the error, so a screen can keep open edits.
  */
 export function useCommandQuery<T>(
   key: string | null,
@@ -14,6 +15,8 @@ export function useCommandQuery<T>(
   const [version, setVersion] = useState(0);
   const [result, setResult] = useState<{
     token: string;
+    /** The key `data` was loaded for. */
+    dataKey: string | null;
     data: T | null;
     error: string;
   } | null>(null);
@@ -26,22 +29,29 @@ export function useCommandQuery<T>(
       .then(readCommandResult)
       .then(
         (data) => {
-          if (!canceled) setResult({ token, data, error: "" });
+          if (!canceled) setResult({ token, dataKey: key, data, error: "" });
         },
         (error: unknown) => {
           if (!canceled)
-            setResult({ token, data: null, error: errorText(error) });
+            setResult((previous) => ({
+              token,
+              dataKey: previous?.dataKey ?? null,
+              data: previous?.data ?? null,
+              error: errorText(error),
+            }));
         },
       );
     return () => {
       canceled = true;
     };
-  }, [token]);
+  }, [key, token]);
   const settled = result !== null && result.token === token;
   return {
     data: result?.data ?? null,
     error: settled ? result.error : "",
     loading: token !== null && !settled,
+    /** True while `data` belongs to an earlier key, such as another filter. */
+    stale: result !== null && result.data !== null && result.dataKey !== key,
     reload: () => setVersion((v) => v + 1),
   };
 }

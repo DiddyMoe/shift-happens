@@ -41,12 +41,16 @@ export function AvailabilityPto() {
           </Link>
         </div>
       </header>
-      {employees.error ? (
+      {/* A failed refresh keeps the last list, and any open entry. */}
+      {employees.error && (
         <LoadError message={employees.error} onRetry={employees.reload} />
-      ) : list === null ? (
-        <p className="status-line" role="status">
-          Loading employees…
-        </p>
+      )}
+      {list === null ? (
+        !employees.error && (
+          <p className="status-line" role="status">
+            Loading employees…
+          </p>
+        )
       ) : (
         <>
           {list.length === 0 && (

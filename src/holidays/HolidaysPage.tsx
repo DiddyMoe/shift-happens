@@ -160,7 +160,7 @@ export function Holidays() {
           <button
             className="btn btn-primary"
             type="button"
-            disabled={busy || !validYear || !holidays.data}
+            disabled={busy || !validYear || !holidays.data || !!loadError}
             onClick={() => choose(null)}
           >
             Add holiday

@@ -148,18 +148,14 @@ export function RestrictionsPanel<
           </select>
         </label>
       </div>
-      {error ? (
-        <LoadError
-          message={error}
-          onRetry={() => {
-            employees.reload();
-            targets.reload();
-          }}
-        />
-      ) : !employees.data || !targets.data ? (
-        <p className="status-line" role="status">
-          Loading employees and {target.noun}s…
-        </p>
+      {/* A failed refresh keeps the last lists, and any open restriction. */}
+      {error && <LoadError message={error} onRetry={reload} />}
+      {!employees.data || !targets.data ? (
+        !error && (
+          <p className="status-line" role="status">
+            Loading employees and {target.noun}s…
+          </p>
+        )
       ) : employees.data.length === 0 ? (
         <div className="empty">
           <p>

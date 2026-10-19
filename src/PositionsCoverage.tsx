@@ -59,12 +59,15 @@ export function PositionsCoverage() {
           </p>
         </div>
       </header>
-      {error ? (
-        <LoadError message={error} onRetry={refreshSources} />
-      ) : !positions.data || !templates.data || !shifts.data ? (
-        <p className="status-line" role="status">
-          Loading positions and coverage…
-        </p>
+      {/* A failed refresh keeps the last records, and any open edits, on
+          screen; Try again reloads the records without discarding edits. */}
+      {error && <LoadError message={error} onRetry={refreshSources} />}
+      {!positions.data || !templates.data || !shifts.data ? (
+        !error && (
+          <p className="status-line" role="status">
+            Loading positions and coverage…
+          </p>
+        )
       ) : (
         <>
           <PositionsSection

@@ -246,8 +246,11 @@ export function EntryPanel({
           <p>No {noun} entries match these filters.</p>
         </div>
       ) : (
+        // Rows for another employee or filter stay visible until these load,
+        // but can't be opened from the keyboard under the new heading.
         <div
           className={`table-wrap${entries.loading ? " is-refreshing" : ""}`}
+          inert={entries.stale}
           aria-busy={entries.loading}
         >
           <table className="data-table avail-table">
