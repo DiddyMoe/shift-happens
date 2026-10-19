@@ -340,13 +340,16 @@
     }
   }
 
-  /* Startup gate (before the shell exists) */
+  /* Startup gate (before the shell exists). The document never scrolls, so
+     this screen scrolls itself when its cards outgrow a small window; safe
+     centering then starts them at the top instead of cutting the top off. */
   .startup-screen {
     display: grid;
     place-items: center;
-    align-content: center;
+    align-content: safe center;
     row-gap: 16px;
-    min-height: 100dvh;
+    height: 100dvh;
+    overflow: auto;
     padding: 24px;
     background: var(--wall);
   }
