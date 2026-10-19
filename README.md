@@ -235,8 +235,15 @@ The stages are explicitly callable: `resolve_database_paths`,
 `open_normal_pool`, and `run_post_schema_initialization`. `startup.rs` is the common
 development/installed decision owner; the development wrapper calls it rather
 than bypassing preservation. The first registered plugin is first-party
-`tauri-plugin-single-instance` 2.5.2. A second launch only restores/shows/focuses
+`tauri-plugin-single-instance` 2.5.4. A second launch only restores/shows/focuses
 the existing main window, before CLI dispatch, app-data resolution or database work.
+The plugin cannot stop a launch that races the first instance's own startup, so
+setup then takes an exclusive lock on `shift-happens.lock` in the database
+directory before any CLI dispatch, window or database work. A launch that cannot
+get it within ten seconds (a restart's successor waits for its predecessor to
+exit) closes without opening a window. The OS releases the lock with the process,
+so the empty file is never deleted. The main window is configured with
+`create: false` and built in setup after the lock.
 
 Startup distinguishes absent, uninitialized empty, current and pending databases.
 Ambiguous file sets, access failures, integrity/foreign-key failures, dirty or

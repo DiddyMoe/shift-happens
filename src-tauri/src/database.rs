@@ -13,10 +13,10 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqlitePoolOptions, SqliteSynchronous},
 };
 use std::{
-    fs,
+    fs, io,
     path::{Path, PathBuf},
     sync::Arc,
-    time::{Duration, SystemTime},
+    time::{Duration, Instant, SystemTime},
 };
 
 pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
@@ -80,6 +80,50 @@ fn database_error() -> AppError {
         ErrorCode::DatabaseUnavailable,
         "The local database could not be opened or inspected.",
     )
+}
+
+/// How long a launch waits for the database directory. A restart starts its
+/// successor just before the previous process exits.
+const DIRECTORY_LOCK_WAIT: Duration = Duration::from_secs(10);
+
+/// Held for the process lifetime, so exactly one process works with a database
+/// directory. The OS releases it when the handle closes, including after a
+/// crash, so the empty lock file itself is never deleted.
+pub struct DirectoryLock {
+    _file: fs::File,
+}
+
+/// `None` means another live process kept the directory for the whole wait.
+pub fn lock_directory(paths: &DatabasePaths) -> AppResult<Option<DirectoryLock>> {
+    fs::create_dir_all(&paths.directory).map_err(|_| database_error())?;
+    let path = paths.directory.join("shift-happens.lock");
+    // `create_new` never follows an existing link, and the no-follow reopen
+    // below refuses one.
+    match fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+    {
+        Ok(_) => {}
+        Err(error) if error.kind() == io::ErrorKind::AlreadyExists => {}
+        Err(_) => return Err(database_error()),
+    }
+    let file = safe_destination::open_narrow(&path, true).map_err(|_| database_error())?;
+    let metadata = file.metadata().map_err(|_| database_error())?;
+    if !metadata.is_file() || is_reparse(&metadata) {
+        return Err(classification_error());
+    }
+    let started = Instant::now();
+    loop {
+        match file.try_lock() {
+            Ok(()) => return Ok(Some(DirectoryLock { _file: file })),
+            Err(fs::TryLockError::WouldBlock) if started.elapsed() < DIRECTORY_LOCK_WAIT => {
+                std::thread::sleep(Duration::from_millis(100));
+            }
+            Err(fs::TryLockError::WouldBlock) => return Ok(None),
+            Err(fs::TryLockError::Error(_)) => return Err(database_error()),
+        }
+    }
 }
 
 pub fn create_owned_directories(paths: &DatabasePaths) -> AppResult<()> {

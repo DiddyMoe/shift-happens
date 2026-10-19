@@ -70,13 +70,6 @@ pub fn run() {
     let builder = commands::register(builder)
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            // Existing explicit local CLI operations also pass the first-party
-            // instance gate; a second launch cannot bypass it with arguments.
-            if commands::run_local_cli() {
-                app.handle().cleanup_before_exit();
-                std::process::exit(0);
-            }
-            app.manage(backup::BackupRuntime::default());
             let resolved = database::resolve_database_paths(
                 || {
                     app.path().app_local_data_dir().map_err(|_| {
@@ -88,6 +81,32 @@ pub fn run() {
                 },
                 cfg!(debug_assertions),
             );
+            // The plugin lets through a launch that races the first instance's
+            // startup, before that instance can take forwarded launches. The
+            // directory lock decides ownership before any CLI, window or
+            // database work, so the losing launch exits without a window.
+            let resolved = resolved.and_then(|paths| match database::lock_directory(&paths)? {
+                Some(lock) => {
+                    app.manage(lock);
+                    Ok(paths)
+                }
+                None => {
+                    diagnostics::event("second_instance_exited");
+                    app.handle().cleanup_before_exit();
+                    std::process::exit(0);
+                }
+            });
+            // Existing explicit local CLI operations also pass the first-party
+            // instance gate; a second launch cannot bypass it with arguments.
+            if commands::run_local_cli() {
+                app.handle().cleanup_before_exit();
+                std::process::exit(0);
+            }
+            // The main window is configured with `create: false` for this order.
+            let window = app.config().app.windows.iter().find(|w| w.label == "main");
+            let window = window.ok_or("The main window is not configured.")?;
+            tauri::WebviewWindowBuilder::from_config(app.handle(), window)?.build()?;
+            app.manage(backup::BackupRuntime::default());
             let context = match resolved {
                 Ok(paths) => {
                     diagnostics::use_database_directory(&paths.directory);
