@@ -382,6 +382,10 @@ export function PlanWorkspace({
         ? editAssignment(request)
         : replayAssignment(request));
       if (operation.current === serial) outcome(result, request);
+      // Another shift was opened meanwhile. A committed change still reloads
+      // the schedule and its history; its message and follow-ups belonged to
+      // the shift that was open.
+      else if (result.status === "success") setRefresh((v) => v + 1);
     } catch (e) {
       if (operation.current === serial) {
         setPending(null);
