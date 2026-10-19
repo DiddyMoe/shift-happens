@@ -501,6 +501,16 @@ pub struct RotationPreview {
     pub set_a_group: HolidayGroup,
     pub set_b_group: HolidayGroup,
 }
+impl RotationPreview {
+    /// The one set-to-group mapping for this rotation year; set None requires no group.
+    pub fn required_group(&self, set: HolidaySet) -> Option<HolidayGroup> {
+        match set {
+            HolidaySet::A => Some(self.set_a_group),
+            HolidaySet::B => Some(self.set_b_group),
+            HolidaySet::None => None,
+        }
+    }
+}
 pub fn rotation_for_year(year: i64, start_year: i64) -> AppResult<RotationPreview> {
     validate_year(year)?;
     validate_year(start_year)?;
@@ -582,11 +592,7 @@ pub fn match_holiday_group(
     {
         None
     } else {
-        match holiday.data.holiday_set {
-            HolidaySet::A => Some(rotation.set_a_group),
-            HolidaySet::B => Some(rotation.set_b_group),
-            HolidaySet::None => None,
-        }
+        rotation.required_group(holiday.data.holiday_set)
     };
     let result = match required_group {
         None => GroupMatch::NotApplicable,

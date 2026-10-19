@@ -16,8 +16,10 @@ import {
   type Employee,
   type RecordFilter,
 } from "../lib/employees";
+import { notesPlaceholder } from "../employees/format";
 import type { CommandResult } from "../lib/ipc";
 import { colorStyle } from "../lib/magnetColor";
+import { isActive, statusSuffix } from "../lib/positionsCoverage";
 import { useRevealOnMount } from "../lib/reveal";
 
 /** A record an employee can be kept off, such as a shift template. */
@@ -70,23 +72,8 @@ export interface RestrictionTarget<
 
 type Mutation = ReturnType<typeof useRecordMutation>;
 
-const isActive = (row: {
-  active_status: ActiveStatus;
-  archived_at: string | null;
-}) => row.active_status === "active" && row.archived_at === null;
-const statusSuffix = (row: {
-  active_status: ActiveStatus;
-  archived_at: string | null;
-}) =>
-  row.archived_at
-    ? " (archived)"
-    : row.active_status === "inactive"
-      ? " (inactive)"
-      : "";
 const capitalize = (text: string) =>
   text.charAt(0).toUpperCase() + text.slice(1);
-const notesPlaceholder =
-  "Scheduling notes only — no patient or medical details.";
 
 /**
  * Cannot-work restrictions for one employee at a time. The employee comes

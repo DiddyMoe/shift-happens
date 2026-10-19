@@ -959,8 +959,9 @@ impl OwnedTemporary {
     }
 }
 
+/// Same-volume write-through move, also used by restore. No-replace unless asked.
 #[cfg(windows)]
-fn native_publish(source: &Path, destination: &Path, replace: bool) -> io::Result<()> {
+pub(crate) fn native_publish(source: &Path, destination: &Path, replace: bool) -> io::Result<()> {
     use std::os::windows::ffi::OsStrExt;
     use windows_sys::Win32::Storage::FileSystem::{
         MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
@@ -977,7 +978,7 @@ fn native_publish(source: &Path, destination: &Path, replace: bool) -> io::Resul
         } else {
             0
         };
-    // SAFETY: live null-terminated native strings; same parent, no copy/reboot flags.
+    // SAFETY: live null-terminated native strings; no copy or reboot flags.
     if unsafe { MoveFileExW(source.as_ptr(), destination.as_ptr(), flags) } == 0 {
         Err(io::Error::last_os_error())
     } else {

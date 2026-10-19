@@ -568,19 +568,14 @@ async fn manual_backup_from(
     let Some(destination_path) = request.destination_path else {
         return CommandResult::Canceled;
     };
-    if runtime
-        .in_flight
-        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-        .is_err()
-    {
+    let Some(guard) = runtime.try_begin() else {
         return CommandResult::Blocked {
             error: AppError::new(
                 ErrorCode::BackupInProgress,
                 "A backup is already in progress. Wait for its result.",
             ),
         };
-    }
-    let guard = InFlight(runtime.in_flight.clone());
+    };
     // Runtime gate confirms both bindings identify the same loaded engine.
     let sqlx_engine = match database::loaded_sqlite_engine().await {
         Ok(engine) => engine,

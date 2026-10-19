@@ -12,6 +12,7 @@ import {
   HowItWorks,
 } from "./RecordControls";
 import { ScheduleStatusTag } from "./ScheduleBoard";
+import { useModalDialog } from "./hooks/useModalDialog";
 import { trapDialogFocus } from "./lib/dialogFocus";
 import {
   buildPrintDto,
@@ -215,17 +216,7 @@ function OutputDialog({
   onClose: () => void;
   children: ReactNode;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const previous = document.activeElement;
-    const modal = dialog.current;
-    modal?.showModal();
-    return () => {
-      modal?.close();
-      if (previous instanceof HTMLElement && previous.isConnected)
-        previous.focus();
-    };
-  }, []);
+  const dialog = useModalDialog();
   return createPortal(
     <dialog
       ref={dialog}

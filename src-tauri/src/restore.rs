@@ -248,25 +248,7 @@ fn live_files(paths: &DatabasePaths) -> AppResult<Vec<(PathBuf, String)>> {
 fn move_file(from: &Path, to: &Path, replace: bool) -> io::Result<()> {
     #[cfg(windows)]
     {
-        use std::os::windows::ffi::OsStrExt;
-        use windows_sys::Win32::Storage::FileSystem::{
-            MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
-        };
-        let wide =
-            |path: &Path| -> Vec<u16> { path.as_os_str().encode_wide().chain(Some(0)).collect() };
-        let (source, destination) = (wide(from), wide(to));
-        let flags = MOVEFILE_WRITE_THROUGH
-            | if replace {
-                MOVEFILE_REPLACE_EXISTING
-            } else {
-                0
-            };
-        // SAFETY: live null-terminated native strings; no copy or reboot flags.
-        if unsafe { MoveFileExW(source.as_ptr(), destination.as_ptr(), flags) } == 0 {
-            Err(io::Error::last_os_error())
-        } else {
-            Ok(())
-        }
+        safe_destination::native_publish(from, to, replace)
     }
     #[cfg(not(windows))]
     {

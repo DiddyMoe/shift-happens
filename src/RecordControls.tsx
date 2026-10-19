@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useModalDialog } from "./hooks/useModalDialog";
 import { trapDialogFocus } from "./lib/dialogFocus";
 import type { RecordFilter } from "./lib/employees";
 import type { Feedback } from "./lib/recordFeedback";
@@ -118,18 +119,8 @@ export function Confirmation({
   /** Styles the confirm action as destructive. */
   danger?: boolean;
 }) {
-  const dialog = useRef<HTMLDialogElement>(null);
+  const dialog = useModalDialog();
   const titleId = useId();
-  useEffect(() => {
-    const previous = document.activeElement;
-    const modal = dialog.current;
-    modal?.showModal();
-    return () => {
-      modal?.close();
-      if (previous instanceof HTMLElement && previous.isConnected)
-        previous.focus();
-    };
-  }, []);
   return (
     <dialog
       ref={dialog}

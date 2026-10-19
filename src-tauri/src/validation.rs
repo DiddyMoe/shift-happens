@@ -709,12 +709,9 @@ fn rule_code(reason: ExclusionReason) -> C {
     }
 }
 fn holiday_group(row: &Checked, policy: &Policy) -> Option<crate::employees::HolidayGroup> {
-    let r = holidays::rotation_for_year(row.date?.year(), policy.holiday_year).ok()?;
-    match row.holiday_set? {
-        HolidaySet::A => Some(r.set_a_group),
-        HolidaySet::B => Some(r.set_b_group),
-        HolidaySet::None => None,
-    }
+    holidays::rotation_for_year(row.date?.year(), policy.holiday_year)
+        .ok()?
+        .required_group(row.holiday_set?)
 }
 fn slot_rules<'a>(row: &'a Checked, policy: &Policy) -> Option<SlotRules<'a>> {
     // Missing holiday/position facts cannot establish rotation or capability.

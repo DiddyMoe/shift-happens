@@ -1,8 +1,8 @@
 use crate::{
     employees::{
-        ActiveStatus, IdRequest, MAX_REVISION, RecordFilter, RevisionRequest, check_revision,
-        mutation_result, normalize_optional_notes, read_employee, require_not_archived,
-        verify_metadata,
+        ActiveStatus, IdRequest, RecordFilter, RevisionRequest, advance_source_metadata,
+        check_revision, mutation_result, normalize_optional_notes, read_employee,
+        record_filter_values, require_not_archived, verify_metadata,
     },
     error::{AppError, AppResult, CommandResult, ErrorCode},
     metadata::{MetadataClock, clock_timestamp},
@@ -126,13 +126,7 @@ pub async fn list_restrictions(
     pool: &SqlitePool,
     request: ListTemplateRestrictionsRequest,
 ) -> AppResult<Vec<TemplateRestriction>> {
-    let (archive, active) = match request.filter {
-        RecordFilter::Current => (Some(false), None),
-        RecordFilter::Active => (Some(false), Some(ActiveStatus::Active)),
-        RecordFilter::Inactive => (Some(false), Some(ActiveStatus::Inactive)),
-        RecordFilter::Archived => (Some(true), None),
-        RecordFilter::All => (None, None),
-    };
+    let (archive, active) = record_filter_values(request.filter);
     let mut tx = pool.begin().await?;
     read_employee(&mut tx, &request.employee_id).await?;
     let rows = sqlx::query_as::<_, TemplateRestriction>("SELECT * FROM employee_shift_template_restrictions WHERE employee_id=?1 AND (?2 IS NULL OR (archived_at IS NOT NULL)=?2) AND (?3 IS NULL OR active_status=?3) ORDER BY shift_template_id, id")
@@ -210,20 +204,6 @@ async fn write_restriction(
     }
     Ok(())
 }
-fn advance_revision(row: &mut TemplateRestriction, clock: &dyn MetadataClock) -> AppResult<()> {
-    row.revision = row
-        .revision
-        .checked_add(1)
-        .filter(|v| *v <= MAX_REVISION)
-        .ok_or_else(|| {
-            AppError::new(
-                ErrorCode::InvalidRevision,
-                "The revision limit has been reached.",
-            )
-        })?;
-    row.updated_at = clock_timestamp(clock)?;
-    Ok(())
-}
 pub async fn create_restriction(
     pool: &SqlitePool,
     clock: &dyn MetadataClock,
@@ -269,7 +249,7 @@ pub async fn update_restriction(
                 require_active_sources(&mut tx, &row.employee_id, &data.shift_template_id).await?;
             }
             row.data = data;
-            advance_revision(&mut row, clock)?;
+            advance_source_metadata(&mut row.revision, &mut row.updated_at, clock)?;
             write_restriction(&mut tx, &row, false).await?;
             tx.commit().await?;
             Ok((row, true))
@@ -291,7 +271,7 @@ pub async fn archive_restriction(
                 tx.rollback().await?;
                 return Ok((row, false));
             }
-            advance_revision(&mut row, clock)?;
+            advance_source_metadata(&mut row.revision, &mut row.updated_at, clock)?;
             row.archived_at = Some(row.updated_at.clone());
             row.data.active_status = ActiveStatus::Inactive;
             write_restriction(&mut tx, &row, false).await?;

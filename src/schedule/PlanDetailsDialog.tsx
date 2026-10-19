@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
+import { useModalDialog } from "../hooks/useModalDialog";
 import { trapDialogFocus } from "../lib/dialogFocus";
 import { displayLocalDate } from "../lib/localDate";
 import type { Schedule } from "../lib/schedules";
@@ -22,17 +23,7 @@ export function PlanDetailsDialog({
   const editable = schedule.status === "draft" && !schedule.archived_at;
   const [name, setName] = useState(schedule.name);
   const [notes, setNotes] = useState(schedule.notes ?? "");
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const previous = document.activeElement;
-    const modal = dialog.current;
-    modal?.showModal();
-    return () => {
-      modal?.close();
-      if (previous instanceof HTMLElement && previous.isConnected)
-        previous.focus();
-    };
-  }, []);
+  const dialog = useModalDialog();
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!editable || busy || !name.trim()) return;
