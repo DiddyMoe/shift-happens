@@ -3,7 +3,7 @@ use crate::{
     availability_pto::{
         AvailabilityEntry, AvailabilityType, PtoEntry, PtoStatus, verify_availability, verify_pto,
     },
-    employees::{ActiveStatus, read_employee},
+    employees::{ActiveStatus, normalize_optional_notes, read_employee},
     entry_intervals::{EvaluationWindows, coalesce, midnight, touched_days},
     error::{
         AppError, AppResult, DIAGNOSTIC_LIMIT, DIAGNOSTIC_SOURCE_ID_BYTES,
@@ -585,6 +585,24 @@ pub async fn load_sources(
     windows: &[LocalInterval],
     budget: &mut SourceRowBudget,
 ) -> AppResult<AvailabilityPtoSources> {
+    load_retained(tx, employee_ids, windows, budget, false).await
+}
+/// Keeps a note only if `verify_availability`/`verify_pto` would reject it.
+fn drop_valid_note(notes: &mut Option<String>) {
+    if normalize_optional_notes(notes.clone()).is_ok_and(|n| n == *notes) {
+        *notes = None;
+    }
+}
+/// `load_sources`, optionally discarding valid notes as rows are retained. Notes
+/// are not analysis inputs; an invalid note stays, so `build` still rejects that
+/// stored row exactly as it would the full row.
+async fn load_retained(
+    tx: &mut Transaction<'_, Sqlite>,
+    employee_ids: &[String],
+    windows: &[LocalInterval],
+    budget: &mut SourceRowBudget,
+    drop_valid_notes: bool,
+) -> AppResult<AvailabilityPtoSources> {
     if employee_ids.len() > ANALYSIS_EMPLOYEE_LIMIT {
         return Err(input_limit_error(
             "employee_rows",
@@ -607,10 +625,13 @@ pub async fn load_sources(
                 if rows.is_empty() {
                     break;
                 }
-                for row in rows {
+                for mut row in rows {
                     after = Some(row.id.clone());
                     if !availability.contains_key(&row.id) {
                         budget.reserve(1)?;
+                        if drop_valid_notes {
+                            drop_valid_note(&mut row.data.notes);
+                        }
                         availability.insert(row.id.clone(), row);
                     }
                 }
@@ -622,10 +643,13 @@ pub async fn load_sources(
                 if rows.is_empty() {
                     break;
                 }
-                for row in rows {
+                for mut row in rows {
                     after = Some(row.id.clone());
                     if !pto.contains_key(&row.id) {
                         budget.reserve(1)?;
+                        if drop_valid_notes {
+                            drop_valid_note(&mut row.data.notes);
+                        }
                         pto.insert(row.id.clone(), row);
                     }
                 }
@@ -660,11 +684,13 @@ pub async fn evaluate_availability(
             "Choose an active, non-archived employee to evaluate availability.",
         ));
     }
-    let sources = load_sources(
+    // Evaluator-private retention: rows are validated in `build`, notes are unused.
+    let sources = load_retained(
         &mut tx,
         std::slice::from_ref(&employee.id),
         &[candidate],
         &mut SourceRowBudget::default(),
+        true,
     )
     .await?;
     tx.rollback().await?;
