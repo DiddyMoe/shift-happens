@@ -34,7 +34,8 @@ pub struct Schedule {
     pub updated_at: String,
     pub archived_at: Option<String>,
     pub revision: i64,
-    /// Set by finalization and kept after reopening. Once-final plans are records.
+    /// Set by finalization and kept after reopening, and read as set for any plan
+    /// older than this database's migration 9. Once-final plans are records.
     pub finalized_once: bool,
 }
 #[derive(Default, Deserialize)]
@@ -138,9 +139,26 @@ pub fn require_draft(row: &Schedule) -> AppResult<()> {
     }
     Ok(())
 }
+/// `SELECT … FROM schedules` followed by `$tail`, as one static statement.
+/// Migration 9 began recording finalization. A schedule created before this
+/// database applied it may have been finalized and reopened without any record,
+/// so it reads as once-final: kept as a record, never deleted.
+macro_rules! select_schedules {
+    ($tail:literal) => {
+        concat!(
+            "SELECT id, name, start_date, end_date, status, notes, ",
+            "generation_settings_snapshot, created_at, updated_at, archived_at, revision, ",
+            "(finalized_once = 1 OR coalesce(julianday(created_at) < (SELECT ",
+            "julianday(installed_on) FROM _sqlx_migrations WHERE version = 9), 1)) ",
+            "AS finalized_once FROM schedules ",
+            $tail
+        )
+    };
+}
+
 pub async fn read_schedule(tx: &mut Transaction<'_, Sqlite>, id: &str) -> AppResult<Schedule> {
     normalize_required_text(id)?;
-    let row = sqlx::query_as::<_, Schedule>("SELECT * FROM schedules WHERE id=?")
+    let row = sqlx::query_as::<_, Schedule>(select_schedules!("WHERE id=?"))
         .bind(id)
         .fetch_optional(&mut **tx)
         .await?
@@ -172,7 +190,7 @@ pub async fn read_current(tx: &mut Transaction<'_, Sqlite>) -> AppResult<Current
     let Some(schedule_id) = id else {
         return Ok(CurrentSchedule::None { setting_revision });
     };
-    let row = sqlx::query_as::<_, Schedule>("SELECT * FROM schedules WHERE id=?")
+    let row = sqlx::query_as::<_, Schedule>(select_schedules!("WHERE id=?"))
         .bind(&schedule_id)
         .fetch_optional(&mut **tx)
         .await?;
@@ -221,7 +239,7 @@ async fn list_in_transaction(
     };
     // No SQL order: the sort below is total (ties end at the unique id), and every
     // row is verified whatever its position, with the same error for any row.
-    let mut rows = sqlx::query_as::<_, Schedule>("SELECT * FROM schedules WHERE (?1 IS NULL OR (archived_at IS NOT NULL)=?1) AND (?2 IS NULL OR status=?2) AND (?3=0 OR id=?4)")
+    let mut rows = sqlx::query_as::<_, Schedule>(select_schedules!("WHERE (?1 IS NULL OR (archived_at IS NOT NULL)=?1) AND (?2 IS NULL OR status=?2) AND (?3=0 OR id=?4)"))
         .bind(archive).bind(status).bind(only_current).bind(current_id).fetch_all(&mut **tx).await?;
     // Parse once, before sorting. Older RFC3339 precisions do not sort as text.
     let mut keyed = Vec::with_capacity(rows.len());

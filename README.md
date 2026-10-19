@@ -538,7 +538,11 @@ Archiving the selected schedule clears its setting in the same transaction.
 be deleted, archived or not. Finalization sets `finalized_once`, which reopening keeps,
 so final schedules and drafts that were once final stay as payroll/hours records
 (29 CFR 516 retention) and can only be archived; deleting one returns "Schedules
-that were finalized are kept as records. Archive it instead." The request carries the
+that were finalized are kept as records. Archive it instead." Databases older than
+migration 9 never recorded finalization, so a draft created before that database
+applied migration 9 (compared with its `_sqlx_migrations.installed_on`) may have been
+final and reopened. Schedule reads report such drafts as `finalized_once`, so they are
+kept the same way, and the next lifecycle save stores the flag. The request carries the
 expected revision and `confirmed`. `confirmed: false` returns `requires_confirmation`
 with the name, slot count and whether it is current, and writes nothing. Confirmed
 deletion runs under the schedule-write coordinator in one `BEGIN IMMEDIATE`
