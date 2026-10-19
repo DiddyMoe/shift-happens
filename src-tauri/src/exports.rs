@@ -131,9 +131,15 @@ fn generate(
             };
         }
     };
-    let layout = font
+    // A PDF over its page limit fails here, before any temporary file exists.
+    let layout = match font
         .as_ref()
-        .map(|font| export_pdf::layout(&snapshot, font));
+        .map(|font| export_pdf::layout(&snapshot, font))
+        .transpose()
+    {
+        Ok(layout) => layout,
+        Err(error) => return CommandResult::Failure { error },
+    };
     let mut temporary = match destinations.claim_temporary(&prepared, false) {
         Ok(temporary) => temporary,
         Err(error) => return CommandResult::Failure { error },

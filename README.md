@@ -1000,7 +1000,10 @@ counts and an XLSX alternative when within its limits. V1 claims no complex-scri
 shaping or bidirectional PDF support. XLSX retains such text literally.
 
 Limits are 100,000 assignment rows for XLSX, 10,000 for PDF/print, and 64 MiB
-(67,108,864 bytes) of aggregate normalized DTO text. Checked loading preflights
+(67,108,864 bytes) of aggregate normalized DTO text. Because notes may hold many
+short lines, PDF layout also stops at 25,000 pages with `export_too_large_for_format`
+(`limit_kind: pdf_pages`) before any temporary file exists; ordinary schedules need
+far fewer. Readback validation enumerates the page tree once. Checked loading preflights
 legacy field byte lengths before fetching values and counts visible control
 replacements and duplicated display fields before retaining rows. Unsupported
 legacy controls become visible `[U+XXXX]` text with bounded diagnostics. Unknown
