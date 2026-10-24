@@ -199,6 +199,26 @@ Local confidentiality relies on the Windows account and filesystem permissions.
 Do not place sensitive personal details, secrets, or local scheduling data in
 source control or logs.
 
+The app does not encrypt data at rest; this is an accepted risk. A 2026 audit
+flagged cleartext storage of workforce data, backups and exports (CWE-312). The
+live database is in the user's own `%LOCALAPPDATA%` folder: the Windows account
+boundary keeps other accounts out, and BitLocker protects a powered-off or stolen
+computer. A database key wrapped with DPAPI would not stop malware running as the
+same user, which can unwrap it too. It would also make the database and its
+backups unreadable on another computer or after a Windows profile reset unless a
+recovery key were added. SQLCipher would bring OpenSSL into the Windows
+cross-build and replace the SQLite engine that the startup version gate checks.
+Exports are meant to be shared, so they stay ordinary documents. The remaining
+gap is copies that leave the profile, so the Backup screen asks for an
+access-controlled network drive or a BitLocker-encrypted removable drive.
+
+Revisit this if the app ever stores health or accommodation details, runs under
+shared or kiosk Windows accounts or on computers without disk encryption, if
+backups routinely leave the computer (then add optional passphrase-encrypted
+backups that restore anywhere, with no DPAPI binding), or if hospital policy or
+regulation requires application-level encryption. `SECURITY.md` states the same
+assumptions for anyone running the app.
+
 ## Local values
 
 `src/lib/localDate.ts`, `localTime.ts`, `localDateTime.ts`, and `localIntervals.ts`

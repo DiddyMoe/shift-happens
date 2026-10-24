@@ -286,7 +286,8 @@ export function Backup({
         </button>
         <p className="fine-print">
           Backup files aren&rsquo;t encrypted. Save them only in
-          hospital-approved places, such as a department network drive.
+          hospital-approved places, such as an access-controlled department
+          network drive or a BitLocker-encrypted USB drive.
         </p>
         {loading && (
           <p className="status-line" role="status">

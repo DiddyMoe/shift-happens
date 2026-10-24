@@ -117,6 +117,10 @@ full policy.
 Use **Backup** in the app to save a copy anywhere you like or to restore one. A
 restore takes effect the next time the app starts.
 
+The app doesn't encrypt the database, backups, or exports. It relies on your
+Windows account and drive encryption such as BitLocker; see
+[SECURITY.md](SECURITY.md) for the assumptions and how to report a problem.
+
 ## Maintenance
 
 - **Version:** `package.json` is the source of truth. Change it with

@@ -143,7 +143,7 @@ export const privacy = [
   },
   {
     title: "Keeping it protected",
-    text: "Your Windows sign-in and drive encryption (BitLocker on hospital-managed computers) protect the data. Backups, exports, and printouts are ordinary files and paper; keep them in hospital-approved places.",
+    text: "Your Windows sign-in keeps other accounts out, and drive encryption (BitLocker on hospital-managed computers) protects a lost or stolen computer. Neither protects a computer left signed in, so lock it (Windows+L) when you step away. Backups, exports, and printouts are ordinary unencrypted files and paper; keep them in hospital-approved places.",
   },
   {
     title: "Records",
