@@ -23,6 +23,8 @@ pub static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 pub const DATABASE_FILENAME: &str = "shift-happens.sqlite";
 pub const BUSY_TIMEOUT: Duration = Duration::from_secs(5);
 pub const MAX_POOL_CONNECTIONS: u32 = 4;
+/// SQLite steps between deadline checks on a bounded connection.
+pub const PROGRESS_STEPS: i32 = 10_000;
 
 #[derive(Clone)]
 pub struct DatabasePaths {
@@ -352,6 +354,21 @@ pub(crate) async fn open_main(
                 error.into()
             }
         })
+}
+
+/// A read-only connection whose statements SQLite interrupts once `deadline`
+/// passes, so work on a file from outside the app stays bounded.
+pub(crate) async fn open_main_until(
+    paths: &DatabasePaths,
+    deadline: Instant,
+) -> AppResult<SqliteConnection> {
+    let mut connection = open_main(paths, true).await?;
+    connection
+        .lock_handle()
+        .await
+        .map_err(|_| database_error())?
+        .set_progress_handler(PROGRESS_STEPS, move || Instant::now() < deadline);
+    Ok(connection)
 }
 
 /// SQLite extended result codes retain their primary code in the low byte.

@@ -934,7 +934,12 @@ next startup, because the running database pool cannot be swapped in place:
    online copy, `DELETE` journal mode, full integrity check, zero foreign-key
    violations). Startup's read-only classification then accepts only a current or
    upgradeable Shift Happens history; a newer build's file and non-Shift Happens files
-   are refused. The preview shows the file, size, employee/schedule counts, the
+   are refused. The file comes from outside the app, so staging is bounded: the file
+   and its staged copy must be at most 1 GiB, and one two-minute deadline covers the
+   copy (which keeps its own 60-second cap), the integrity and foreign-key checks,
+   classification and the preview counts. A SQLite progress handler interrupts those
+   statements at the deadline, and the restore is refused with a time-limit message
+   while the shared gate stays held until the work stops. The preview shows the file, size, employee/schedule counts, the
    latest schedule end date and whether it will be upgraded. Backup and restore share
    one in-flight gate, and the single-use confirmation lives only in memory.
 2. **Confirm.** `apply_database_restore` rechecks the staged copy's length and

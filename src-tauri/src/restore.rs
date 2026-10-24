@@ -37,9 +37,29 @@ const MARKER_LIMIT: u64 = 64 * 1024;
 const MOVE_RETRY_LIMIT: Duration = Duration::from_secs(10);
 const MOVE_RETRY_INTERVAL: Duration = Duration::from_millis(200);
 const SIDECAR_SUFFIXES: [&str; 3] = ["-wal", "-shm", "-journal"];
+/// A chosen file comes from outside the app, so staging is bounded: by its size,
+/// and by one deadline for the copy (itself capped at 60 seconds), the integrity
+/// and foreign-key checks, classification and the preview counts.
+const RESTORE_SIZE_LIMIT: u64 = 1 << 30;
+const RESTORE_TIME_LIMIT: Duration = Duration::from_secs(120);
 
 fn source_error(message: &'static str) -> AppError {
     AppError::new(ErrorCode::RestoreSourceInvalid, message)
+}
+fn too_large() -> AppError {
+    source_error("This backup is larger than 1 GB, so it cannot be restored.")
+}
+fn too_slow() -> AppError {
+    source_error(
+        "Reading and checking this backup took too long, so it cannot be restored. If it is on a network or removable drive, copy it to this computer and try again.",
+    )
+}
+/// Work interrupted at the deadline fails like a damaged file; report the limit.
+fn require_time_left(deadline: Instant) -> AppResult<()> {
+    if Instant::now() >= deadline {
+        return Err(too_slow());
+    }
+    Ok(())
 }
 fn unreadable_source() -> AppError {
     source_error(
@@ -343,7 +363,7 @@ fn cleanup_staging(paths: &DatabasePaths) {
 // ---------- Phase A: stage and preview ----------
 
 /// Absolute regular file, not a link, not the live database or its sidecars,
-/// and not an already staged copy. Returns the source length.
+/// not an already staged copy and within the size limit. Returns the source length.
 fn check_source(paths: &DatabasePaths, source: &Path) -> AppResult<u64> {
     let text = source.to_str().ok_or_else(unreadable_source)?;
     if !source.is_absolute()
@@ -392,6 +412,9 @@ fn check_source(paths: &DatabasePaths, source: &Path) -> AppResult<u64> {
             "Files in the restore staging folder cannot be restored. Choose the original backup file.",
         ));
     }
+    if metadata.len() > RESTORE_SIZE_LIMIT {
+        return Err(too_large());
+    }
     Ok(metadata.len())
 }
 fn copy_error(error: AppError) -> AppError {
@@ -401,11 +424,15 @@ fn copy_error(error: AppError) -> AppError {
             damaged_source()
         }
         ErrorCode::BackupCopyFailed => unreadable_source(),
+        ErrorCode::BackupCopyLimitExceeded => too_slow(),
         _ => error,
     }
 }
-async fn read_contents(staged: &DatabasePaths) -> (Option<i64>, Option<i64>, Option<String>) {
-    let Ok(mut connection) = database::open_main(staged, true).await else {
+async fn read_contents(
+    staged: &DatabasePaths,
+    deadline: Instant,
+) -> (Option<i64>, Option<i64>, Option<String>) {
+    let Ok(mut connection) = database::open_main_until(staged, deadline).await else {
         return (None, None, None);
     };
     // Older backups may lack a table; each fact is optional.
@@ -462,6 +489,7 @@ async fn stage_copy(
     runtime: &BackupRuntime,
     source: PathBuf,
 ) -> AppResult<RestorePreview> {
+    let deadline = Instant::now() + RESTORE_TIME_LIMIT;
     if marker_exists(paths) {
         return Err(pending_error());
     }
@@ -480,9 +508,15 @@ async fn stage_copy(
             None,
             DestinationPolicy::AppOwnedNoOverwrite { directory: staging },
             ValidationPolicy::PreMigrationStrict,
+            Some(deadline),
             clock.as_ref(),
             &destinations,
         ) {
+            // Committed pages in a `-wal` beside the source can outgrow its length.
+            BackupFileResult::Success { file, .. } if file.file_size_bytes > RESTORE_SIZE_LIMIT => {
+                remove_quietly(&copy_destination);
+                Err(too_large())
+            }
             BackupFileResult::Success { .. } => Ok((length, copy_destination)),
             BackupFileResult::Failure { error, .. } => Err(copy_error(error)),
             BackupFileResult::RequiresOverwrite { .. } => Err(unreadable_source()),
@@ -490,7 +524,7 @@ async fn stage_copy(
     })
     .await
     .map_err(|_| unreadable_source())??;
-    let inspected = inspect_staged(paths, &staged).await;
+    let inspected = inspect_staged(paths, &staged, deadline).await;
     let (schema_version, will_migrate, contents, digest) = match inspected {
         Ok(value) => value,
         Err(error) => {
@@ -534,14 +568,18 @@ type StagedFacts = (
 );
 /// The same read-only classification that startup uses. Only a current or
 /// upgradeable Shift Happens history is accepted.
-async fn inspect_staged(paths: &DatabasePaths, staged: &Path) -> AppResult<StagedFacts> {
+async fn inspect_staged(
+    paths: &DatabasePaths,
+    staged: &Path,
+    deadline: Instant,
+) -> AppResult<StagedFacts> {
     let staged_paths = DatabasePaths {
         directory: paths.restore_staging(),
         main: staged.to_owned(),
     };
-    let inspection = startup::inspect_existing(&staged_paths)
-        .await
-        .map_err(|_| unreadable_source())?;
+    let inspection = startup::inspect_existing(&staged_paths, Some(deadline)).await;
+    require_time_left(deadline)?;
+    let inspection = inspection.map_err(|_| unreadable_source())?;
     let will_migrate = match inspection.classification {
         Classification::Current => false,
         Classification::Pending => true,
@@ -562,7 +600,8 @@ async fn inspect_staged(paths: &DatabasePaths, staged: &Path) -> AppResult<Stage
         _ => return Err(unreadable_source()),
     };
     let schema_version = inspection.highest_applied.ok_or_else(not_shift_happens)?;
-    let contents = read_contents(&staged_paths).await;
+    let contents = read_contents(&staged_paths, deadline).await;
+    require_time_left(deadline)?;
     let owned = staged.to_owned();
     let digest = tauri::async_runtime::spawn_blocking(move || {
         safe_destination::require_no_sidecars(&owned).map_err(|_| unreadable_source())?;
@@ -724,6 +763,7 @@ async fn save_current(
             None,
             DestinationPolicy::AppOwnedNoOverwrite { directory },
             ValidationPolicy::ManualPreserve,
+            None,
             clock.as_ref(),
             &destinations,
         )

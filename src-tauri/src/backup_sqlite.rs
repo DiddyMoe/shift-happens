@@ -1,12 +1,12 @@
 //! Narrow RAII wrapper over the *same* libsqlite3-sys linked by SQLx. No domain
 //! queries or second data layer. Explicit finish/close errors are never ignored.
 use crate::{
-    database::{BUSY_TIMEOUT, SqliteEngine, require_safe_engine},
+    database::{BUSY_TIMEOUT, PROGRESS_STEPS, SqliteEngine, require_safe_engine},
     error::{AppError, AppResult, ErrorCode},
 };
 use libsqlite3_sys as ffi;
 use std::{
-    ffi::{CStr, CString},
+    ffi::{CStr, CString, c_int, c_void},
     path::Path,
     ptr,
     time::{Duration, Instant},
@@ -36,6 +36,17 @@ fn copy_limit_error() -> AppError {
         "The backup copy exceeded its 60-second work limit. Close other writers or choose another destination folder and try again.",
     )
 }
+fn check_limit_error() -> AppError {
+    AppError::new(
+        ErrorCode::BackupCopyLimitExceeded,
+        "Checking the backup copy exceeded its work limit. No backup was published.",
+    )
+}
+/// Progress handler: a nonzero result interrupts the running statement.
+unsafe extern "C" fn past_deadline(deadline: *mut c_void) -> c_int {
+    // SAFETY: `interrupt_at` registers a pointer to its connection's boxed deadline.
+    c_int::from(Instant::now() >= unsafe { *deadline.cast::<Instant>() })
+}
 fn checked(code: i32) -> AppResult<()> {
     if code == ffi::SQLITE_OK {
         Ok(())
@@ -59,7 +70,8 @@ pub fn loaded_engine() -> AppResult<SqliteEngine> {
     Ok(engine)
 }
 
-pub struct Connection(*mut ffi::sqlite3);
+/// The optional box holds the deadline that `interrupt_at` registered.
+pub struct Connection(*mut ffi::sqlite3, Option<Box<Instant>>);
 impl Connection {
     pub fn open(path: &Path, readonly: bool) -> AppResult<Self> {
         #[cfg(unix)]
@@ -81,12 +93,27 @@ impl Connection {
         // SAFETY: valid UTF-8/native byte pathname; creation and URI processing are
         // disabled. This connection stays exclusively on its blocking thread.
         let code = unsafe { ffi::sqlite3_open_v2(name.as_ptr(), &mut handle, flags, ptr::null()) };
-        let connection = Self(handle);
+        let connection = Self(handle, None);
         checked(code)?;
         checked(unsafe {
             ffi::sqlite3_busy_timeout(connection.0, BUSY_TIMEOUT.as_millis() as i32)
         })?;
         Ok(connection)
+    }
+    /// SQLite interrupts this connection's statements once `deadline` passes;
+    /// they then fail with the work-limit error.
+    pub fn interrupt_at(&mut self, deadline: Instant) {
+        let deadline: *mut Instant = &mut **self.1.insert(Box::new(deadline));
+        // SAFETY: SQLite calls the handler only while a statement of this live
+        // connection runs, and the box is freed only after the connection closes.
+        unsafe {
+            ffi::sqlite3_progress_handler(
+                self.0,
+                PROGRESS_STEPS,
+                Some(past_deadline),
+                deadline.cast(),
+            );
+        }
     }
     pub fn statement(&self, sql: &CStr) -> AppResult<Statement<'_>> {
         let mut statement = ptr::null_mut();
@@ -146,6 +173,8 @@ impl Statement<'_> {
         match unsafe { ffi::sqlite3_step(self.pointer) } {
             ffi::SQLITE_ROW => Ok(true),
             ffi::SQLITE_DONE => Ok(false),
+            // Only `interrupt_at`'s deadline interrupts these connections.
+            ffi::SQLITE_INTERRUPT => Err(check_limit_error()),
             code => Err(sqlite_failure(code)),
         }
     }

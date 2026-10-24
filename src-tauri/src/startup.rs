@@ -9,7 +9,7 @@ use crate::{
 };
 use serde::Serialize;
 use sqlx::{Connection, SqliteConnection};
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 use uuid::Uuid;
 
 // Declaration order is the deterministic primary blocking precedence.
@@ -189,9 +189,15 @@ pub(crate) struct Inspection {
 
 /// One real read-only, create-disabled, normal-locking connection. All checks
 /// share a read transaction, including the current committed WAL-backed view.
-/// Restore staging reuses it on its own validated copy.
-pub(crate) async fn inspect_existing(paths: &DatabasePaths) -> AppResult<Inspection> {
-    let mut connection = database::open_main(paths, true).await?;
+/// Restore staging reuses it on its own validated copy, interrupted at its deadline.
+pub(crate) async fn inspect_existing(
+    paths: &DatabasePaths,
+    deadline: Option<Instant>,
+) -> AppResult<Inspection> {
+    let mut connection = match deadline {
+        Some(deadline) => database::open_main_until(paths, deadline).await?,
+        None => database::open_main(paths, true).await?,
+    };
     let result = async {
         database::inspect_engine(&mut connection).await?;
         let wal = sqlx::query_scalar::<_, String>("PRAGMA journal_mode")
@@ -401,7 +407,7 @@ async fn initialize(
         FileClassification::ExistingDatabase => {
             progress.stage = "read_only_inspection";
             recheck(paths, &files).await?;
-            let inspection = inspect_existing(paths).await?;
+            let inspection = inspect_existing(paths, None).await?;
             files = after_reader(paths, &files, inspection.wal).await?;
             progress.files = Some(files.clone());
             progress.physically_readable = inspection.physically_readable;
@@ -448,6 +454,7 @@ async fn initialize(
                         None,
                         DestinationPolicy::AppOwnedNoOverwrite { directory },
                         ValidationPolicy::PreMigrationStrict,
+                        None,
                         backup_clock.as_ref(),
                         &SafeDestinationService::default(),
                     )

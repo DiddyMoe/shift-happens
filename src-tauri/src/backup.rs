@@ -17,6 +17,7 @@ use std::{
         Arc, Mutex,
         atomic::{AtomicBool, Ordering},
     },
+    time::Instant,
 };
 use uuid::Uuid;
 
@@ -155,12 +156,18 @@ fn header(path: &Path) -> AppResult<()> {
 
 /// Pure file operation, independent of Tauri, SQLx pools, migrations and history.
 /// Exactly one implementation serves manual preservation and strict migration backup.
+/// `check_deadline` interrupts the independent checks; restore passes one because
+/// its source comes from outside the app.
+// Eight independent inputs that each of the four callers sets; a parameter
+// struct would only wrap them.
+#[allow(clippy::too_many_arguments)]
 pub fn create_consistent_sqlite_backup(
     source_database_path: &Path,
     final_destination_path: &Path,
     overwrite_authorization: Option<&str>,
     destination_policy: DestinationPolicy,
     validation_policy: ValidationPolicy,
+    check_deadline: Option<Instant>,
     metadata_clock: &dyn MetadataClock,
     destinations: &SafeDestinationService,
 ) -> BackupFileResult {
@@ -281,8 +288,14 @@ pub fn create_consistent_sqlite_backup(
         safe_destination::require_no_sidecars(&temporary.path)?;
         header(&temporary.path)?;
         // One independent real read-only connection remains open for all checks.
-        let reader = Connection::open(&temporary.path, true)?;
-        let validation = validate(&reader).map_err(|_| validation_error());
+        let mut reader = Connection::open(&temporary.path, true)?;
+        if let Some(deadline) = check_deadline {
+            reader.interrupt_at(deadline);
+        }
+        let validation = validate(&reader).map_err(|error| match error.code {
+            ErrorCode::BackupCopyLimitExceeded => error,
+            _ => validation_error(),
+        });
         let reader_closed = reader.close();
         let foreign_keys = validation?;
         reader_closed?;
@@ -630,6 +643,7 @@ async fn manual_backup_from(
             request.overwrite_token.as_deref(),
             DestinationPolicy::Manual,
             ValidationPolicy::ManualPreserve,
+            None,
             clock.as_ref(),
             &destinations,
         );
