@@ -124,6 +124,7 @@ enum WarningCode {
     PreferredTime,
     MinimumRest,
     Recovery,
+    SameDay,
     Consecutive,
     Overtime,
     SourceMinimum,
@@ -139,6 +140,7 @@ impl WarningCode {
             }
             Self::MinimumRest => crate::validation::ValidationCode::MinimumRestViolation.as_str(),
             Self::Recovery => crate::validation::ValidationCode::RecoveryRuleViolation.as_str(),
+            Self::SameDay => crate::validation::ValidationCode::MultipleShiftsSameDay.as_str(),
             Self::Consecutive => "max_consecutive_workdays",
             Self::Incomplete => crate::validation::ValidationCode::IncompleteData.as_str(),
             Self::Overtime => "projected_overtime",
@@ -820,6 +822,23 @@ impl Replacement {
                                 WarningCode::MinimumRest
                             };
                             result.warnings.push(self.finding(operation, code.as_str(), Some(target), json!({"prior_id": self.rows[gap.prior].id,"next_id":self.rows[gap.next].id,"prior_start":self.rows[gap.prior].structure.actual_start_datetime,"prior_end":self.rows[gap.prior].structure.actual_end_datetime,"next_start":self.rows[gap.next].structure.actual_start_datetime,"next_end":self.rows[gap.next].structure.actual_end_datetime,"required_minutes":self.rules.policy.rest,"gap_minutes":gap.gap,"deficit_minutes":gap.deficit,"recovery":gap.recovery,"also_minimum_rest":gap.also_minimum_rest}), None)?);
+                        }
+                        if !candidate.same_day.is_empty() {
+                            let mut others = candidate.same_day.clone();
+                            others.sort_by_key(|&i| {
+                                (
+                                    &self.rows[i].structure.actual_start_datetime,
+                                    &self.rows[i].id,
+                                )
+                            });
+                            let others: Vec<_> = others.iter().map(|&i| json!({"assignment_id":self.rows[i].id,"start":self.rows[i].structure.actual_start_datetime,"end":self.rows[i].structure.actual_end_datetime})).collect();
+                            result.warnings.push(self.finding(
+                                operation,
+                                WarningCode::SameDay.as_str(),
+                                Some(target),
+                                json!({"date":slot.date.format(),"other_assignments":others}),
+                                None,
+                            )?);
                         }
                         for (applies, code, context, rule) in [
                             (

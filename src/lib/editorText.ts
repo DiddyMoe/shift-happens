@@ -21,6 +21,7 @@ export const editorFindingLabels: Readonly<Record<string, string>> = {
   preferred_time_mismatch: "Shift differs from preferred time of day",
   minimum_rest_violation: "Minimum rest between assignments is not met",
   recovery_rule_violation: "Required recovery after a shift is not met",
+  multiple_shifts_same_day: "Already working another shift that day",
   max_consecutive_workdays: "Consecutive workday limit would be exceeded",
   projected_overtime: "Weekly overtime threshold would be exceeded",
   weekend_off_rotation: "Weekend is outside the employee’s rotation",

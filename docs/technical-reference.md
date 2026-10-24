@@ -4,7 +4,10 @@ Detailed design notes and behavior rules for Shift Happens. For what the app is,
 how to run it, and how to build it, start with the [README](../README.md).
 
 This repository implements **Prompts 01–15**, with the later navigation, restore,
-and deletion changes described below.
+and deletion changes described below. Generation also departs from Prompt 9's
+soft rest ranking: it never breaks one-shift-per-day, rest, recovery or
+consecutive-day limits (see
+[Deterministic schedule generation](#deterministic-schedule-generation)).
 
 ## How the app is organized
 
@@ -617,13 +620,18 @@ Hard exclusions cover approved PTO, unavailable/hard blocks, full positive
 availability when required, PRN extra-weekday full coverage, recurring/category,
 shift and position restrictions, night/ORTHO capabilities, weekend/holiday
 capabilities, automatic rotation/group eligibility, maximum paid minutes, and
-employee overlap. The shared indexes expand once, including restriction carry-in
+employee overlap. Generation also never breaks a work-rule limit: it excludes an
+employee who already works that operational date, whose gap to an adjacent
+assignment would fall short of minimum rest or recovery, or whose projected run
+would exceed the consecutive-workday limit. Manual edits report those four as
+warnings to acknowledge instead. The shared indexes expand once, including restriction carry-in
 and restrictions starting after midnight. Supported storage has no availability
 recurrence or legacy preference fields; unknown/corrupt stored shapes fail closed.
 Active two-week minimums or maximums with a null payroll anchor block preflight.
 
 Candidate ranking is the following ascending lexicographic tuple, with no flat
-conflict count:
+conflict count. Items 1–3 are always zero for a generation candidate, since a
+shortfall excludes it; the editor reports them as warnings:
 
 1. Recovery deficit minutes, then recovery pair count.
 2. Remaining rest deficit minutes, then remaining rest pair count.
@@ -654,7 +662,8 @@ are checked before per-slot candidate work; input/expansion overflow returns
 `planned_slot_limit_exceeded`. Nothing is partially persisted or returned.
 
 When no hard-safe automatically eligible candidate remains at that greedy step,
-the slot stays open. Otherwise soft conflicts never remove a qualifying employee.
+the slot stays open. Soft conflicts (requested PTO, overtime, minimums and
+preferences) never remove a qualifying employee.
 Structured warning IDs use the shared material-facts identity, planned identities,
 actual intervals, employee/source facts and policy values, excluding fresh schedule
 and assignment IDs, names/notes, insertion order, and metadata time. The response
@@ -708,7 +717,8 @@ undo/redo, with exact backend entry identity, direction and live revisions.
 Candidates, edits and assignment-changing replay reuse the generator evaluator and
 bounded rule indexes. A replacement subtracts the existing row before adding the
 new employee once. Hard eligibility conflicts cannot be acknowledged. Requested PTO,
-preferences, rest/recovery, consecutive days, overtime, off-rotation weekends, holiday
+preferences, rest/recovery, a second shift on the same operational date,
+consecutive days, overtime, off-rotation weekends, holiday
 group mismatch, missing complete PRN weekday availability, and worsened authoritative
 source minimum shortfalls require acknowledgement. Missing blanket explicit availability
 and weekend/holiday capabilities remain hard blockers.
@@ -776,7 +786,9 @@ warning passes. Rest/recovery uses original chronological adjacency after a comp
 overlap pass, suppressing pairs involving overlap participants or corrupt intervals
 and never splicing their neighbors. Unorderable rows suppress rest for that employee.
 Recovery suppresses ordinary rest for the same pair. Consecutive days use distinct
-operational dates and maximal runs. All findings are schedule-local; clean boundary
+operational dates and maximal runs. An employee with more than one shift on an
+operational date gets one `multiple_shifts_same_day` warning per chronologically
+adjacent pair. All findings are schedule-local; clean boundary
 results cannot establish facts about adjacent work in other plans or systems.
 
 Shared input bounds are 370 days, 100,000 assignments, 1,000 relevant employees,

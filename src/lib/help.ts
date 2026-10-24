@@ -74,7 +74,8 @@ export const howTo = [
     title: "Build a schedule",
     text: [
       "On Schedule, choose Generate…, pick a calendar month or a date range, and name the draft. Shift Happens fills each required shift with someone who can work it, following your rules.",
-      "Shifts it can't fill stay open. An open shift doesn't mean no one could work it, only that this pass found no one; try assigning it yourself.",
+      "It never gives anyone a second shift on the same day, less than the minimum rest or recovery time, or more consecutive workdays than your limit. A shift it can't fill within those rules stays open.",
+      "An open shift doesn't mean no one could work it, only that this pass found no one. You can assign it yourself; if that breaks a rest or workday rule, you're asked to confirm first.",
     ],
   },
   {

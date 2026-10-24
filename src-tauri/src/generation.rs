@@ -1,4 +1,6 @@
 //! Deterministic greedy scheduling. No lookahead, random ties, or cross-schedule totals.
+//! Generation never breaks a work-rule limit (one shift per operational day, rest,
+//! recovery, consecutive days); a slot no one can take within them stays open.
 use crate::{
     availability_rules::RuleCode,
     employees::{EmploymentType, RulePeriod},
@@ -52,13 +54,10 @@ fn range(start: &str, end: &str) -> AppResult<(LocalDate, LocalDate)> {
 pub enum GenerationCode {
     CandidateEligibilityDataIncomplete,
     GenerationWarningOutputLimitExceeded,
-    MaxConsecutiveAvoidanceFailed,
-    MinimumRestAvoidanceFailed,
     OpenShiftNoQualifyingCandidate,
     OvertimeAvoidanceFailed,
     PreferredAvailabilityNotMet,
     PreferredTimeMismatch,
-    RecoveryAvoidanceFailed,
     RequestedPtoAvoidanceFailed,
     SoftRuleDataIncomplete,
 }
@@ -69,15 +68,12 @@ impl GenerationCode {
             Self::GenerationWarningOutputLimitExceeded => {
                 "generation_warning_output_limit_exceeded"
             }
-            Self::MaxConsecutiveAvoidanceFailed => "max_consecutive_avoidance_failed",
-            Self::MinimumRestAvoidanceFailed => "minimum_rest_avoidance_failed",
             Self::OpenShiftNoQualifyingCandidate => "open_shift_no_qualifying_candidate",
             Self::OvertimeAvoidanceFailed => "overtime_avoidance_failed",
             Self::PreferredAvailabilityNotMet => RuleCode::PreferredAvailabilityNotMet.as_str(),
             Self::PreferredTimeMismatch => {
                 crate::validation::ValidationCode::PreferredTimeMismatch.as_str()
             }
-            Self::RecoveryAvoidanceFailed => "recovery_avoidance_failed",
             Self::RequestedPtoAvoidanceFailed => "requested_pto_avoidance_failed",
             Self::SoftRuleDataIncomplete => "soft_rule_data_incomplete",
         }
@@ -88,22 +84,28 @@ impl Serialize for GenerationCode {
         serializer.serialize_str(self.as_str())
     }
 }
+// ConsecutiveWorkdayLimit, MinimumRestNotMet, RecoveryNotMet and SameDayAssignment
+// exclude only during generation; manual edits report them as warnings to acknowledge.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ExclusionReason {
     ApprovedPtoConflict,
     AvailabilityHardConflict,
     CandidateEligibilityDataIncomplete,
+    ConsecutiveWorkdayLimit,
     EmployeeAssignmentOverlap,
     EmployeeRestriction,
     ExplicitAvailabilityMissing,
     HolidayCapabilityMissing,
     HolidayGroupMismatch,
     MaximumPaidMinutesExceeded,
+    MinimumRestNotMet,
     NightCapabilityMissing,
     OrthoOrCapabilityMissing,
     PositionRestriction,
     PrnWeekdayAvailabilityMissing,
+    RecoveryNotMet,
+    SameDayAssignment,
     ShiftTemplateRestriction,
     WeekendCapabilityMissing,
     WeekendOffRotation,
@@ -204,8 +206,13 @@ pub(crate) struct Workload {
     has_overlapping_intervals: bool,
     // Disjoint maximal inclusive runs, so bridge lookup is logarithmic.
     runs: BTreeMap<LocalDate, LocalDate>,
+    // Selected slots by operational date.
+    days: BTreeMap<LocalDate, Vec<usize>>,
 }
 impl Workload {
+    pub(crate) fn same_day(&self, date: LocalDate) -> &[usize] {
+        self.days.get(&date).map_or(&[], Vec::as_slice)
+    }
     pub(crate) fn total(&self, slot: &PlannedSlot, period: RulePeriod) -> AppResult<Totals> {
         match period {
             RulePeriod::Week => Ok(self
@@ -280,6 +287,7 @@ impl Workload {
             self.runs.remove(&key);
         }
         self.runs.insert(first, last);
+        self.days.entry(slot.date).or_default().push(index);
         self.has_overlapping_intervals |= self.neighbors(slot.interval).2;
         self.intervals.insert(
             (slot.interval.start(), index),
@@ -305,10 +313,14 @@ pub(crate) struct Candidate {
     // Fifteen numeric tuple components in Prompt 9 order. Missing/non-authoritative
     // minimum completion = 10,000; absent/unevaluable time preference = 1;
     // absent availability preference = 1. Lower integer risk always wins.
+    // Components 0–4 (recovery, rest, consecutive excess) are always zero for a
+    // generation candidate, since a shortfall excludes it; manual edits warn on them.
     pub rank: [i64; 15],
     pub employee: usize,
     pub gaps: Vec<GapFact>,
     pub run: (LocalDate, LocalDate),
+    // The employee's other slots on this operational date.
+    pub same_day: Vec<usize>,
     pub overrides: Vec<ExclusionReason>,
     pub exclusions: Vec<ExclusionReason>,
 }
@@ -391,25 +403,6 @@ pub(crate) fn evaluate(
     if overlap {
         exclusions.push(ExclusionReason::EmployeeAssignmentOverlap);
     }
-    let mut overrides = Vec::new();
-    if manual {
-        exclusions.retain(|reason| {
-            if matches!(
-                reason,
-                ExclusionReason::WeekendOffRotation
-                    | ExclusionReason::HolidayGroupMismatch
-                    | ExclusionReason::PrnWeekdayAvailabilityMissing
-            ) {
-                overrides.push(*reason);
-                false
-            } else {
-                true
-            }
-        });
-    }
-    if !manual && !exclusions.is_empty() {
-        return Ok(Err(exclusions));
-    }
     let mut gaps = Vec::with_capacity(2);
     if let Some(prior) = prior
         && let Some(gap) = gap_fact(prior, slot_index, &inputs.slots, inputs, false)?
@@ -439,6 +432,40 @@ pub(crate) fn evaluate(
         .checked_sub(inputs.policy.consecutive)
         .ok_or_else(arithmetic_error)?
         .max(0);
+    let same_day = state.same_day(slot.date);
+    let mut overrides = Vec::new();
+    if manual {
+        exclusions.retain(|reason| {
+            if matches!(
+                reason,
+                ExclusionReason::WeekendOffRotation
+                    | ExclusionReason::HolidayGroupMismatch
+                    | ExclusionReason::PrnWeekdayAvailabilityMissing
+            ) {
+                overrides.push(*reason);
+                false
+            } else {
+                true
+            }
+        });
+    } else {
+        for (breaks, reason) in [
+            (!same_day.is_empty(), ExclusionReason::SameDayAssignment),
+            (recovery_pairs > 0, ExclusionReason::RecoveryNotMet),
+            (rest_pairs > 0, ExclusionReason::MinimumRestNotMet),
+            (
+                consecutive_excess > 0,
+                ExclusionReason::ConsecutiveWorkdayLimit,
+            ),
+        ] {
+            if breaks {
+                exclusions.push(reason);
+            }
+        }
+        if !exclusions.is_empty() {
+            return Ok(Err(exclusions));
+        }
+    }
     let week = state
         .total(slot, RulePeriod::Week)?
         .projected(s.shift_paid_minutes_snapshot)?;
@@ -503,6 +530,7 @@ pub(crate) fn evaluate(
         employee: employee_index,
         gaps,
         run,
+        same_day: same_day.to_vec(),
         overrides,
         exclusions,
     }))
@@ -527,8 +555,17 @@ fn open_warning(
     let s = slot.slot.structure();
     let context = json!({"slot": slot_identity(slot), "employee_id": null, "facts": {"active_employee_count": inputs.employees.len(), "exclusion_counts": exclusions}});
     let mut facts = warning_material(code, &context)?;
+    facts.text(
+        &serde_json::to_string(&json!({
+            "minimum_rest_minutes": inputs.policy.rest,
+            "quick_turnaround": inputs.policy.quick,
+            "max_consecutive_workdays": inputs.policy.consecutive,
+        }))
+        .map_err(|_| arithmetic_error())?,
+    );
     for (employee, workload) in inputs.employees.iter().zip(workloads) {
         let e = &employee.data;
+        let run = workload.projected_run(slot.date);
         let ordinary_prn = e.employment_type == EmploymentType::Prn
             && s.holiday_id.is_none()
             && !matches!(slot.date.weekday(), Weekday::Saturday | Weekday::Sunday);
@@ -547,6 +584,8 @@ fn open_warning(
             "maximum_paid_minutes": e.maximum_paid_minutes, "maximum_period": e.maximum_period,
             "current_period_paid_minutes": workload.total(slot, e.maximum_period)?.paid,
             "candidate_paid_minutes": s.shift_paid_minutes_snapshot,
+            "works_operational_date": !workload.same_day(slot.date).is_empty(),
+            "projected_run": [run.0.format(), run.1.format()],
         })).map_err(|_| arithmetic_error())?);
         inputs.availability.append_hard_material(
             &employee.id,
@@ -571,14 +610,13 @@ fn open_warning(
                 }
             }
         }
+        // Neighbors decide overlap, rest and recovery.
         let (prior, next, _) = workload.neighbors(slot.interval);
         for neighbor in [prior, next].into_iter().flatten() {
-            if inputs.slots[neighbor].interval.overlaps(slot.interval) {
-                facts.text(
-                    &serde_json::to_string(&slot_identity(&inputs.slots[neighbor]))
-                        .map_err(|_| arithmetic_error())?,
-                );
-            }
+            facts.text(
+                &serde_json::to_string(&slot_identity(&inputs.slots[neighbor]))
+                    .map_err(|_| arithmetic_error())?,
+            );
         }
     }
     Ok(GenerationWarning {
@@ -633,12 +671,9 @@ fn selected_warnings(
     // Alphabetical code order within each already sorted planned slot.
     for code in [
         GenerationCode::CandidateEligibilityDataIncomplete,
-        GenerationCode::MaxConsecutiveAvoidanceFailed,
-        GenerationCode::MinimumRestAvoidanceFailed,
         GenerationCode::OvertimeAvoidanceFailed,
         GenerationCode::PreferredAvailabilityNotMet,
         GenerationCode::PreferredTimeMismatch,
-        GenerationCode::RecoveryAvoidanceFailed,
         GenerationCode::RequestedPtoAvoidanceFailed,
         GenerationCode::SoftRuleDataIncomplete,
     ] {
@@ -647,12 +682,9 @@ fn selected_warnings(
             GenerationCode::CandidateEligibilityDataIncomplete => {
                 exclusions.contains_key(&ExclusionReason::CandidateEligibilityDataIncomplete)
             }
-            GenerationCode::MaxConsecutiveAvoidanceFailed => r[4] > 0,
-            GenerationCode::MinimumRestAvoidanceFailed => r[3] > 0,
             GenerationCode::OvertimeAvoidanceFailed => r[6] > 0,
             GenerationCode::PreferredAvailabilityNotMet => r[13] == 2,
             GenerationCode::PreferredTimeMismatch => r[14] == 2,
-            GenerationCode::RecoveryAvoidanceFailed => r[1] > 0,
             GenerationCode::RequestedPtoAvoidanceFailed => r[5] > 0,
             GenerationCode::SoftRuleDataIncomplete => r[12] > 0,
             _ => false,
@@ -663,12 +695,6 @@ fn selected_warnings(
         warnings.emit(code, || {
             let slot = &inputs.slots[index];
             let material = match code {
-                GenerationCode::RecoveryAvoidanceFailed | GenerationCode::MinimumRestAvoidanceFailed => {
-                    let recovery = code == GenerationCode::RecoveryAvoidanceFailed;
-                    let pairs: Vec<_> = candidate.gaps.iter().filter(|g| g.recovery == recovery).map(|g| json!({"prior": slot_identity(&inputs.slots[g.prior]), "next": slot_identity(&inputs.slots[g.next]), "required_gap_minutes": inputs.policy.rest, "actual_gap_minutes": g.gap, "deficit_minutes": g.deficit, "recovery": g.recovery, "also_minimum_rest": g.also_minimum_rest})).collect();
-                    json!({"pairs": pairs, "deficit_minutes": r[if recovery {0} else {2}], "pair_count": r[if recovery {1} else {3}]})
-                }
-                GenerationCode::MaxConsecutiveAvoidanceFailed => json!({"run_start": candidate.run.0.format(), "run_end": candidate.run.1.format(), "limit_days": inputs.policy.consecutive, "excess_days": r[4]}),
                 GenerationCode::OvertimeAvoidanceFailed => json!({"period_start": slot.week.start.format(), "period_end_exclusive": slot.week.end_exclusive.format(), "projected_paid_minutes": r[9], "threshold_minutes": inputs.policy.overtime, "excess_minutes": r[6]}),
                 GenerationCode::PreferredTimeMismatch => json!({"preferred_category": inputs.employees[candidate.employee].data.preferred_time_of_day, "assignment_category": slot.slot.structure().shift_category_snapshot}),
                 GenerationCode::CandidateEligibilityDataIncomplete => json!({"excluded_candidate_count": exclusions.get(&ExclusionReason::CandidateEligibilityDataIncomplete)}),

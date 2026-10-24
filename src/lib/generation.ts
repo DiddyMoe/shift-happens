@@ -4,6 +4,7 @@ import {
   type AppError,
   type CommandResult,
 } from "./ipc";
+import { editorFindingLabels } from "./editorText";
 import type { Schedule } from "./schedules";
 
 /** A read or generation result as either its data or the error to show. */
@@ -53,29 +54,31 @@ export interface GenerationReadiness {
 export type GenerationCode =
   | "candidate_eligibility_data_incomplete"
   | "generation_warning_output_limit_exceeded"
-  | "max_consecutive_avoidance_failed"
-  | "minimum_rest_avoidance_failed"
   | "open_shift_no_qualifying_candidate"
   | "overtime_avoidance_failed"
   | "preferred_availability_not_met"
   | "preferred_time_mismatch"
-  | "recovery_avoidance_failed"
   | "requested_pto_avoidance_failed"
   | "soft_rule_data_incomplete";
 export const warningLabels: Record<GenerationCode, string> = {
   candidate_eligibility_data_incomplete:
     "Some candidates could not be proven eligible",
   generation_warning_output_limit_exceeded: "Warning details were truncated",
-  max_consecutive_avoidance_failed: "Consecutive workday limit exceeded",
-  minimum_rest_avoidance_failed: "Minimum rest could not be maintained",
   open_shift_no_qualifying_candidate:
     "Open slot: no eligible candidate remained at this step",
   overtime_avoidance_failed: "Weekly overtime could not be avoided",
   preferred_availability_not_met: "Preferred availability could not be met",
   preferred_time_mismatch: "Time-of-day preference could not be met",
-  recovery_avoidance_failed: "Recovery gap could not be maintained",
   requested_pto_avoidance_failed: "Requested time off could not be avoided",
   soft_rule_data_incomplete: "Some preference facts could not be evaluated",
+};
+/** Why generation passed over an employee for a shift it left open. */
+export const exclusionLabels: Readonly<Record<string, string>> = {
+  ...editorFindingLabels,
+  same_day_assignment: "Already working another shift that day",
+  minimum_rest_not_met: "Too little rest between shifts",
+  recovery_not_met: "Too little recovery time after a shift",
+  consecutive_workday_limit: "Would pass the consecutive workday limit",
 };
 export type JsonValue =
   | null

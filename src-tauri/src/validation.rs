@@ -1,6 +1,6 @@
 //! Deterministic read-only validation. Emission passes: header/limits, rows and
 //! structural slots, source/configuration hard errors, assignment hard rules,
-//! maxima, overlap sweep, then audit/assignment/workload/run/rest warnings.
+//! maxima, overlap sweep, then audit/assignment/workload/same-day/run/rest warnings.
 //! Each pass uses stable employee/date/assignment-ID order and stops immediately
 //! on output exhaustion. Presentation sorts errors first, then date, datetime,
 //! code, assignment, counterpart and identity; nullable keys sort last.
@@ -112,6 +112,7 @@ codes! {
     PartTimeTwoWeekMinimumNotMet => ("part_time_two_week_minimum_not_met",Warning,"Below the part-time two-week minimum hours."),
     CustomEmployeeMinimumNotMet => ("custom_employee_minimum_not_met",Warning,"Below the employee's minimum for this period."),
     ConsecutiveWorkdaysExceeded => ("consecutive_workdays_exceeded",Warning,"More consecutive workdays than the limit allows."),
+    MultipleShiftsSameDay => ("multiple_shifts_same_day",Warning,"This employee works more than one shift on this day."),
     MinimumRestViolation => ("minimum_rest_violation",Warning,"Less than the minimum rest between shifts."),
     RecoveryRuleViolation => ("recovery_rule_violation",Warning,"Not enough recovery time after the previous shift."),
     TwoWeekAnchorMissing => ("two_week_anchor_missing",Warning,"A two-week rule needs the two-week pay period start, which isn't set."),
@@ -1498,9 +1499,20 @@ pub fn validate_snapshot(mut snapshot: ValidationSnapshot) -> AppResult<Validati
             {
                 continue;
             }
-            let dates: BTreeSet<_> = indices.iter().filter_map(|i| rows[*i].date).collect();
+            let mut days = BTreeMap::<LocalDate, Vec<&Checked>>::new();
+            for i in indices {
+                if let Some(date) = rows[*i].date {
+                    days.entry(date).or_default().push(&rows[*i]);
+                }
+            }
+            for (date, shifts) in &mut days {
+                shifts.sort_by_key(|row| (row.start, row.raw.id()));
+                for pair in shifts.windows(2) {
+                    if !out.plain(C::MultipleShiftsSameDay,Target::pair(pair[0],pair[1]),json!({"date":date.format(),"intervals":pair_intervals(pair[0],pair[1]),"shift_count":shifts.len()}))?{return out.finish();}
+                }
+            }
             let mut run: Option<(LocalDate, LocalDate)> = None;
-            for date in dates {
+            for &date in days.keys() {
                 match run {
                     Some((a, b)) if date.days_since(b) == 1 => run = Some((a, date)),
                     Some((a, b)) => {

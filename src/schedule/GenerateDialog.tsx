@@ -5,6 +5,7 @@ import { HowItWorks, LoadError } from "../RecordControls";
 import { trapDialogFocus } from "../lib/dialogFocus";
 import {
   commandOutcome,
+  exclusionLabels,
   generateSchedule,
   getGenerationReadiness,
   warningLabels,
@@ -118,9 +119,7 @@ function FatalDetails({ error }: { error: AppError }) {
 }
 function WarningDetail({ warning }: { warning: GenerationWarning }) {
   const { slot, facts } = warning.context;
-  const deficit = facts?.deficit_minutes;
   const excessMinutes = facts?.excess_minutes;
-  const excessDays = facts?.excess_days;
   return (
     <li>
       <strong>{warningLabels[warning.code]}</strong>
@@ -134,21 +133,10 @@ function WarningDetail({ warning }: { warning: GenerationWarning }) {
           </span>
         </p>
       )}
-      {typeof deficit === "number" && (
-        <p>
-          Rest short by <span className="display">{formatHours(deficit)}</span>.
-        </p>
-      )}
       {typeof excessMinutes === "number" && (
         <p>
           Over by <span className="display">{formatHours(excessMinutes)}</span>{" "}
           paid.
-        </p>
-      )}
-      {typeof excessMinutes !== "number" && typeof excessDays === "number" && (
-        <p>
-          Over by <span className="display">{excessDays}</span>{" "}
-          {excessDays === 1 ? "day" : "days"}.
         </p>
       )}
       {facts?.exclusion_counts &&
@@ -159,7 +147,7 @@ function WarningDetail({ warning }: { warning: GenerationWarning }) {
             <ul className="bullets">
               {Object.entries(facts.exclusion_counts).map(([code, count]) => (
                 <li key={code}>
-                  {code.replaceAll("_", " ")}:{" "}
+                  {exclusionLabels[code] ?? code.replaceAll("_", " ")}:{" "}
                   <span className="display">{String(count)}</span>
                 </li>
               ))}
@@ -700,9 +688,14 @@ export function GenerateDialog({
             arrangement.
           </p>
           <p>
-            Requested time off and preferences are soft priorities. When a soft
-            conflict cannot be avoided, the best eligible candidate is assigned
-            with warnings.
+            No one gets a second shift on the same day, less than the minimum
+            rest or recovery time, or more consecutive workdays than the limit;
+            a shift that can't be filled within those rules stays open.
+          </p>
+          <p>
+            Requested time off, overtime, and preferences are soft priorities.
+            When a soft conflict cannot be avoided, the best eligible candidate
+            is assigned with warnings.
           </p>
         </HowItWorks>
       </div>

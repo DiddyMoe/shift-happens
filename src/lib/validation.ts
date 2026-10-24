@@ -38,6 +38,7 @@ export type ValidationCode =
   | "part_time_two_week_minimum_not_met"
   | "custom_employee_minimum_not_met"
   | "consecutive_workdays_exceeded"
+  | "multiple_shifts_same_day"
   | "minimum_rest_violation"
   | "recovery_rule_violation"
   | "two_week_anchor_missing"
